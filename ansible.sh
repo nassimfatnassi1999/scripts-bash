@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 
+# ==========================================================
+# Script Name : ansible.sh
+# Author      : Nassim Fatnassi
+# Description :
+#   - Mise à jour des paquets
+#   - Installation des dépendances nécessaires
+#   - Ajout du dépôt officiel Ansible
+#   - Installation d'Ansible
+# ==========================================================
+
+
 # Arrêt en cas d'erreur
 set -e
 

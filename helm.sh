@@ -20,20 +20,13 @@ apt update -y && apt upgrade -y
 echo "📦 Installation des dépendances..."
 apt install -y curl apt-transport-https gnupg lsb-release
 
-# Ajouter le dépôt Helm officiel
-echo "🗂️ Ajout du dépôt Helm..."
-curl https://baltocdn.com/helm/signing.asc | gpg --dearmor > /usr/share/keyrings/helm.gpg
-echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
-
-# Mise à jour après ajout du dépôt
-apt update -y
-
-# Installation de Helm
-echo "⬇️ Installation de Helm..."
-apt install -y helm
+# Téléchargement et installation directe depuis GitHub (méthode officielle)
+echo "⬇️ Téléchargement et installation de Helm depuis GitHub..."
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 # Vérification de l'installation
 echo "✅ Vérification..."
-helm version --short
+helm version --short || { echo "❌ Échec de l'installation de Helm."; exit 1; }
 
 echo "🎉 Helm a été installé avec succès sur Pop!_OS."
+
