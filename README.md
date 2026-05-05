@@ -17,18 +17,31 @@ The goal of this repository is to provide a simple yet powerful toolkit to:
 
 ## 📂 Repository Structure
 ```bash
-
 ├── ansible.sh
 ├── cloud-cli.sh
+├── docker-cleanup.sh
 ├── docker.sh
+├── git-switch.sh
 ├── helm.sh
 ├── installed-packages.sh
 ├── jenkins.sh
+├── kopia.sh
 ├── kubectl.sh
 ├── minikube.sh
 ├── terraform.sh
 ├── troubleshoot.sh
-└── vault.sh
+├── user-group.sh
+├── zip-disk.sh
+├── ssh/
+│   ├── create_and_deploy_ssh_key.sh
+│   └── setup-ssh.sh
+└── zabbix/
+    ├── grafana-zabbix.sh
+    ├── remove-grafana-zabbix.sh
+    ├── remove-zabbix-agent.sh
+    ├── remove-zabbix-server.sh
+    ├── zabix-agent.sh
+    └── zabix-server.sh
 ```
 ## 🧑‍💻 Usage
 
