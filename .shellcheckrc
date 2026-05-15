@@ -1,0 +1,7 @@
+shell=bash
+severity=style
+external-sources=true
+source-path=.
+source-path=./lib
+source-path=./scripts
+exclude=SC1091
