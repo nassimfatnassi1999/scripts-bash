@@ -23,7 +23,7 @@ install_binary_url() {
   local name="$1" url="$2" mode="${3:-plain}"
   local tmpdir
   tmpdir="$(make_tmpdir)"
-  check_sudo
+  check_sudo || return 1
   require_internet
   case "$mode" in
     plain)
@@ -47,7 +47,7 @@ install_k9s() {
 }
 
 install_kubectx_kubens() {
-  check_sudo
+  check_sudo || return 1
   require_internet
   local tmpdir
   tmpdir="$(make_tmpdir)"
@@ -66,7 +66,7 @@ install_stern() {
 }
 
 install_kustomize() {
-  check_sudo
+  check_sudo || return 1
   require_internet
   local tmpdir
   tmpdir="$(make_tmpdir)"

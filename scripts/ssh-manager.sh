@@ -15,8 +15,8 @@ handle_standard_args "$@"
 SSH_DIR="${HOME}/.ssh"
 
 install_ssh_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y openssh-client openssh-server ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y openssh-clients openssh-server ;;
@@ -150,7 +150,7 @@ sshd_status() {
 }
 
 restart_sshd() {
-  check_sudo
+  check_sudo || return 1
   log_warn "Restarting SSH daemon can disconnect active remote sessions if config is invalid."
   if command -v sshd >/dev/null 2>&1; then
     run_cmd_sudo sshd -t

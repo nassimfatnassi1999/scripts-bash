@@ -13,8 +13,8 @@ SCRIPT_DESC="View, edit, install and validate cron jobs"
 handle_standard_args "$@"
 
 install_cron() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y cron ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y cronie ;;
@@ -33,7 +33,7 @@ cron_service_name() {
 }
 
 enable_cron_service() {
-  check_sudo
+  check_sudo || return 1
   if systemd_available; then
     service_enable_start "$(cron_service_name)"
   elif command -v rc-update >/dev/null 2>&1; then

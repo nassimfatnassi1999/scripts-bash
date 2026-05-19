@@ -13,8 +13,8 @@ SCRIPT_DESC="Install common developer toolchains and CLI utilities"
 handle_standard_args "$@"
 
 install_packages() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y "$@" ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y "$@" ;;
@@ -26,7 +26,7 @@ install_packages() {
 }
 
 install_core_tools() {
-  detect_package_manager
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) install_packages build-essential curl wget git ca-certificates gnupg unzip jq make pkg-config ;;
     dnf|yum) install_packages gcc gcc-c++ make curl wget git ca-certificates gnupg2 unzip jq pkgconfig ;;
@@ -37,7 +37,7 @@ install_core_tools() {
 }
 
 install_python() {
-  detect_package_manager
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) install_packages python3 python3-pip python3-venv pipx ;;
     dnf|yum) install_packages python3 python3-pip pipx ;;
@@ -48,7 +48,7 @@ install_python() {
 }
 
 install_node() {
-  detect_package_manager
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) install_packages nodejs npm ;;
     dnf|yum) install_packages nodejs npm ;;
@@ -59,7 +59,7 @@ install_node() {
 }
 
 install_go() {
-  detect_package_manager
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) install_packages golang ;;
     dnf|yum) install_packages golang ;;
@@ -86,7 +86,7 @@ install_rust() {
 }
 
 install_shell_tools() {
-  detect_package_manager
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) install_packages shellcheck shfmt ripgrep fd-find bat fzf tree tmux ;;
     dnf|yum) install_packages ShellCheck shfmt ripgrep fd-find bat fzf tree tmux ;;

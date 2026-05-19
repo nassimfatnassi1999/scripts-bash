@@ -38,18 +38,19 @@ install_kubectl() {
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   local install_method
   install_method="$(ask_input "Install method: 1=binary, 2=package manager" "1")"
 
   if [[ "$install_method" == "2" ]]; then
-    _install_kubectl_pkg
+    _install_kubectl_pkg || return 1
   else
-    _install_kubectl_binary
+    _install_kubectl_binary || return 1
   fi
 
+  require_command kubectl || return 1
   log_ok "kubectl installed: $(kubectl version --client --short 2>/dev/null || true)"
 }
 
@@ -60,27 +61,28 @@ _install_kubectl_binary() {
   local version
   version="$(curl -fsSL https://dl.k8s.io/release/stable.txt 2>/dev/null || echo "v1.29.0")"
   local tmpdir; tmpdir="$(make_tmpdir)"
-  download_file "https://dl.k8s.io/release/${version}/bin/linux/${arch}/kubectl" "${tmpdir}/kubectl"
-  run_cmd_sudo install -m 755 "${tmpdir}/kubectl" /usr/local/bin/kubectl
+  download_file "https://dl.k8s.io/release/${version}/bin/linux/${arch}/kubectl" "${tmpdir}/kubectl" || return 1
+  run_cmd_sudo install -m 755 "${tmpdir}/kubectl" /usr/local/bin/kubectl || return 1
 }
 
 _install_kubectl_pkg() {
-  detect_package_manager
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt)
-      run_cmd_sudo apt-get update -y
-      run_cmd_sudo apt-get install -y ca-certificates curl gnupg
-      run_cmd_sudo mkdir -p /etc/apt/keyrings
+      run_cmd_sudo apt-get update -y || return 1
+      run_cmd_sudo apt-get install -y ca-certificates curl gnupg || return 1
+      run_cmd_sudo mkdir -p /etc/apt/keyrings || return 1
       local tmpdir; tmpdir="$(make_tmpdir)"
-      download_file "https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key" "${tmpdir}/k8s.key"
-      run_cmd_sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < "${tmpdir}/k8s.key"
+      download_file "https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key" "${tmpdir}/k8s.key" || return 1
+      run_cmd_sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg < "${tmpdir}/k8s.key" || return 1
       echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" \
-        | sudo tee /etc/apt/sources.list.d/kubernetes.list
-      run_cmd_sudo apt-get update -y
-      run_cmd_sudo apt-get install -y kubectl
+        | sudo tee /etc/apt/sources.list.d/kubernetes.list >/dev/null || return 1
+      run_cmd_sudo apt-get update -y || return 1
+      run_cmd_sudo apt-get install -y kubectl || return 1
       ;;
     dnf|yum)
-      cat > /tmp/kubernetes.repo <<'EOF'
+      local tmpdir; tmpdir="$(make_tmpdir)"
+      cat > "${tmpdir}/kubernetes.repo" <<'EOF'
 [kubernetes]
 name=Kubernetes
 baseurl=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/
@@ -88,12 +90,11 @@ enabled=1
 gpgcheck=1
 gpgkey=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/repodata/repomd.xml.key
 EOF
-      run_cmd_sudo mv /tmp/kubernetes.repo /etc/yum.repos.d/kubernetes.repo
-      # shellcheck disable=SC2086
-      run_cmd sudo $PKG_INSTALL kubectl
+      run_cmd_sudo mv "${tmpdir}/kubernetes.repo" /etc/yum.repos.d/kubernetes.repo || return 1
+      install_package kubectl || return 1
       ;;
     pacman)
-      run_cmd_sudo pacman -S --noconfirm kubectl
+      run_cmd_sudo pacman -S --noconfirm kubectl || return 1
       ;;
     *)
       _install_kubectl_binary

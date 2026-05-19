@@ -49,7 +49,7 @@ service_action() {
   local action="$1"
   local svc
   svc="$(service_name_input)"
-  check_sudo
+  check_sudo || return 1
   case "$(service_backend)" in
     systemd)
       case "$action" in

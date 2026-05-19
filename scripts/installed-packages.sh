@@ -59,7 +59,7 @@ import_apt() {
   local infile
   infile="$(ask_input "Package list file path")"
   [[ ! -f "$infile" ]] && { log_error "File not found: $infile"; return 1; }
-  check_sudo
+  check_sudo || return 1
   log_step "Installing packages from: $infile"
   if ask_confirm "Preview packages first?"; then
     cat "$infile"
@@ -92,7 +92,7 @@ import_rpm() {
   local infile
   infile="$(ask_input "Package list file path")"
   [[ ! -f "$infile" ]] && { log_error "File not found: $infile"; return 1; }
-  check_sudo
+  check_sudo || return 1
   if ask_confirm "Install all packages from $infile?"; then
     # shellcheck disable=SC2046
     run_cmd sudo "$PKG_MANAGER" install -y $(cat "$infile")
@@ -184,7 +184,7 @@ show_shell_history_installs() {
 # AUDIT: LARGEST PACKAGES
 # ---------------------------------------------------------------------------
 show_largest_packages() {
-  detect_package_manager
+  detect_package_manager || return 1
   log_info "=== Largest installed packages ==="
   case "$PKG_MANAGER" in
     apt)
@@ -211,7 +211,7 @@ show_largest_packages() {
 # UNIFIED EXPORT / IMPORT (auto-detect)
 # ---------------------------------------------------------------------------
 do_export_all() {
-  detect_package_manager
+  detect_package_manager || return 1
   mkdir -p "$EXPORT_DIR"
   log_step "Exporting packages to: $EXPORT_DIR"
   case "$PKG_MANAGER" in
@@ -229,7 +229,7 @@ do_export_all() {
 # MENU
 # ---------------------------------------------------------------------------
 main() {
-  detect_package_manager
+  detect_package_manager || return 1
 
   while true; do
     print_script_header "$SCRIPT_NAME" "$SCRIPT_DESC"

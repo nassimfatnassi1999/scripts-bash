@@ -13,8 +13,8 @@ SCRIPT_DESC="Update packages, clean caches, inspect reboot status"
 handle_standard_args "$@"
 
 pkg_update_index() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y ;;
     dnf) run_cmd_sudo dnf check-update || true ;;
@@ -27,8 +27,8 @@ pkg_update_index() {
 }
 
 pkg_upgrade() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   log_warn "This will upgrade installed packages on this system."
   [[ "${DRY_RUN:-0}" == "1" ]] && log_info "Dry-run mode is enabled."
   if ! ask_confirm "Proceed with package upgrade?"; then log_warn "Cancelled."; return 0; fi
@@ -48,8 +48,8 @@ pkg_upgrade() {
 }
 
 pkg_full_upgrade() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   log_warn "Full upgrade may install/remove packages to satisfy dependencies."
   if ! ask_confirm "Proceed with full upgrade?"; then log_warn "Cancelled."; return 0; fi
   case "$PKG_MANAGER" in
@@ -68,7 +68,7 @@ pkg_full_upgrade() {
 }
 
 list_updates() {
-  detect_package_manager
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt)
       run_cmd_sudo apt-get update -y
@@ -87,8 +87,8 @@ list_updates() {
 }
 
 cleanup_packages() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   log_warn "This removes package caches and unused dependencies where supported."
   if ! ask_confirm "Proceed with cleanup?"; then log_warn "Cancelled."; return 0; fi
   case "$PKG_MANAGER" in
@@ -114,8 +114,8 @@ cleanup_packages() {
 }
 
 repair_package_db() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   log_warn "This attempts package database or dependency repair."
   if ! ask_confirm "Proceed with repair for ${PKG_MANAGER}?"; then log_warn "Cancelled."; return 0; fi
   case "$PKG_MANAGER" in

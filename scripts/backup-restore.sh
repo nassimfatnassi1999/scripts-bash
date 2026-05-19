@@ -15,8 +15,8 @@ handle_standard_args "$@"
 BACKUP_ROOT="${BACKUP_ROOT:-${HOME}/backups}"
 
 install_backup_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y tar gzip xz-utils rsync coreutils ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y tar gzip xz rsync coreutils ;;

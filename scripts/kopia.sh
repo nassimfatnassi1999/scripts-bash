@@ -64,49 +64,51 @@ install_kopia() {
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
-      _install_kopia_apt
+      _install_kopia_apt || return 1
       ;;
     dnf|yum)
-      _install_kopia_rpm
+      _install_kopia_rpm || return 1
       ;;
     pacman)
       if is_installed yay; then
-        run_cmd yay -S --noconfirm kopia-bin
+        run_cmd yay -S --noconfirm kopia-bin || return 1
       else
         log_warn "Install kopia-bin from AUR manually, or use binary install."
-        _install_kopia_binary
+        _install_kopia_binary || return 1
       fi
       ;;
     *)
-      _install_kopia_binary
+      _install_kopia_binary || return 1
       ;;
   esac
 
+  require_command kopia || return 1
   log_ok "Kopia installed: $(kopia --version 2>/dev/null)"
 }
 
 _install_kopia_apt() {
   log_step "Installing Kopia via apt repository..."
-  run_cmd_sudo apt-get update -y
-  run_cmd_sudo apt-get install -y curl gpg apt-transport-https ca-certificates
-  run_cmd_sudo install -d -m 0755 /etc/apt/keyrings
+  run_cmd_sudo apt-get update -y || return 1
+  run_cmd_sudo apt-get install -y curl gpg apt-transport-https ca-certificates || return 1
+  run_cmd_sudo install -d -m 0755 /etc/apt/keyrings || return 1
   local tmpdir; tmpdir="$(make_tmpdir)"
-  download_file "https://kopia.io/signing-key" "${tmpdir}/kopia.key"
-  run_cmd_sudo gpg --dearmor -o /etc/apt/keyrings/kopia.gpg < "${tmpdir}/kopia.key"
+  download_file "https://kopia.io/signing-key" "${tmpdir}/kopia.key" || return 1
+  run_cmd_sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/kopia.gpg < "${tmpdir}/kopia.key" || return 1
   echo "deb [signed-by=/etc/apt/keyrings/kopia.gpg] http://packages.kopia.io/apt/ stable main" \
-    | sudo tee /etc/apt/sources.list.d/kopia.list > /dev/null
-  run_cmd_sudo apt-get update -y
-  run_cmd_sudo apt-get install -y kopia
+    | sudo tee /etc/apt/sources.list.d/kopia.list > /dev/null || return 1
+  run_cmd_sudo apt-get update -y || return 1
+  run_cmd_sudo apt-get install -y kopia || return 1
 }
 
 _install_kopia_rpm() {
   log_step "Installing Kopia via RPM repository..."
-  cat > /tmp/kopia.repo <<'EOF'
+  local tmpdir; tmpdir="$(make_tmpdir)"
+  cat > "${tmpdir}/kopia.repo" <<'EOF'
 [kopia]
 name=Kopia
 baseurl=http://packages.kopia.io/rpm/stable/$basearch/
@@ -114,9 +116,8 @@ gpgcheck=1
 gpgkey=https://kopia.io/signing-key
 enabled=1
 EOF
-  run_cmd_sudo mv /tmp/kopia.repo /etc/yum.repos.d/kopia.repo
-  # shellcheck disable=SC2086
-  run_cmd sudo $PKG_INSTALL kopia
+  run_cmd_sudo mv "${tmpdir}/kopia.repo" /etc/yum.repos.d/kopia.repo || return 1
+  install_package kopia || return 1
 }
 
 _install_kopia_binary() {
@@ -129,9 +130,9 @@ _install_kopia_binary() {
   version="$(curl -fsSL https://api.github.com/repos/kopia/kopia/releases/latest \
     | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/' 2>/dev/null || echo "0.17.0")"
   local url="https://github.com/kopia/kopia/releases/download/v${version}/kopia-${version}-linux-${arch}.tar.gz"
-  download_file "$url" "${tmpdir}/kopia.tar.gz"
-  run_cmd tar -xzf "${tmpdir}/kopia.tar.gz" -C "${tmpdir}"
-  run_cmd_sudo install -m 755 "${tmpdir}/kopia" /usr/local/bin/kopia
+  download_file "$url" "${tmpdir}/kopia.tar.gz" || return 1
+  run_cmd tar -xzf "${tmpdir}/kopia.tar.gz" -C "${tmpdir}" || return 1
+  run_cmd_sudo install -m 755 "${tmpdir}/kopia" /usr/local/bin/kopia || return 1
 }
 
 # ---------------------------------------------------------------------------

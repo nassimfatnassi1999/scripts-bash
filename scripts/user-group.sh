@@ -131,7 +131,7 @@ create_primary_group_if_needed() {
 }
 
 create_user() {
-  check_sudo
+  check_sudo || return 1
   require_account_tools
   require_shadow_command useradd
 
@@ -205,7 +205,7 @@ create_user() {
 }
 
 delete_user() {
-  check_sudo
+  check_sudo || return 1
   require_shadow_command userdel
   local username
   username="$(ask_input "Username to delete")"
@@ -234,7 +234,7 @@ delete_user() {
 }
 
 modify_user_menu() {
-  check_sudo
+  check_sudo || return 1
   require_shadow_command usermod
   local username
   username="$(ask_input "Username to modify")"
@@ -349,7 +349,7 @@ modify_user_menu() {
 # GROUP OPERATIONS
 # ---------------------------------------------------------------------------
 create_group() {
-  check_sudo
+  check_sudo || return 1
   require_shadow_command groupadd
   local group gid
   group="$(ask_input "Group name")"
@@ -373,7 +373,7 @@ create_group() {
 }
 
 rename_group() {
-  check_sudo
+  check_sudo || return 1
   require_shadow_command groupmod
   local group new_group
   group="$(ask_input "Current group name")"
@@ -392,7 +392,7 @@ rename_group() {
 }
 
 delete_group() {
-  check_sudo
+  check_sudo || return 1
   require_shadow_command groupdel
   local group
   group="$(ask_input "Group to delete")"
@@ -411,7 +411,7 @@ delete_group() {
 # MEMBERSHIP OPERATIONS
 # ---------------------------------------------------------------------------
 add_user_to_group() {
-  check_sudo
+  check_sudo || return 1
   require_shadow_command usermod
   local username group
   username="$(ask_input "Username")"
@@ -428,7 +428,7 @@ add_user_to_group() {
 }
 
 remove_user_from_group() {
-  check_sudo
+  check_sudo || return 1
   local username group
   username="$(ask_input "Username")"
   require_not_empty "$username" "Username"
@@ -454,7 +454,7 @@ remove_user_from_group() {
 }
 
 set_primary_group() {
-  check_sudo
+  check_sudo || return 1
   require_shadow_command usermod
   local username group
   username="$(ask_input "Username")"

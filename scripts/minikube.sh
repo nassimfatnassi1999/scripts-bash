@@ -46,8 +46,8 @@ install_minikube() {
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   local arch
   arch="$(get_arch_suffix)"
@@ -220,7 +220,7 @@ open_dashboard() {
 
 tunnel_minikube() {
   require_command minikube
-  check_sudo
+  check_sudo || return 1
   log_step "Starting Minikube tunnel (requires sudo)..."
   log_info "Press Ctrl+C to stop."
   sudo minikube tunnel || true

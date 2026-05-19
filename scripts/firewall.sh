@@ -25,8 +25,8 @@ detect_firewall() {
 }
 
 install_firewall_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   menu_select "Install Firewall Tool" "Cancel" "1:ufw" "2:firewalld" "3:nftables" "4:iptables"
   case "$REPLY" in
     1) install_package ufw ;;
@@ -66,7 +66,7 @@ show_firewall_status() {
 
 enable_firewall() {
   detect_firewall
-  check_sudo
+  check_sudo || return 1
   case "$FW_TOOL" in
     ufw)
       log_warn "Enabling ufw may disconnect remote SSH sessions if SSH is not allowed."
@@ -88,7 +88,7 @@ enable_firewall() {
 
 disable_firewall() {
   detect_firewall
-  check_sudo
+  check_sudo || return 1
   log_warn "Disabling firewall protection can expose this host."
   if ! ask_confirm "Disable firewall backend '${FW_TOOL:-unknown}'?"; then return 0; fi
   case "$FW_TOOL" in
@@ -102,7 +102,7 @@ disable_firewall() {
 
 allow_port() {
   detect_firewall
-  check_sudo
+  check_sudo || return 1
   local port proto
   port="$(ask_input "Port number")"
   proto="$(ask_input "Protocol" "tcp")"
@@ -124,7 +124,7 @@ allow_port() {
 
 deny_port() {
   detect_firewall
-  check_sudo
+  check_sudo || return 1
   local port proto
   port="$(ask_input "Port number")"
   proto="$(ask_input "Protocol" "tcp")"
@@ -145,7 +145,7 @@ deny_port() {
 
 allow_service() {
   detect_firewall
-  check_sudo
+  check_sudo || return 1
   local svc
   svc="$(ask_input "Service name (ssh/http/https/etc.)" "ssh")"
   require_not_empty "$svc" "Service"

@@ -23,8 +23,8 @@ ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-zip}"
 # DEPENDENCIES
 # ---------------------------------------------------------------------------
 install_archive_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)

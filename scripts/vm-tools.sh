@@ -24,8 +24,8 @@ detect_virtualization() {
 }
 
 install_vmware_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y open-vm-tools open-vm-tools-desktop ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y open-vm-tools open-vm-tools-desktop || run_cmd_sudo "$PKG_MANAGER" install -y open-vm-tools ;;
@@ -37,8 +37,8 @@ install_vmware_tools() {
 }
 
 install_virtualbox_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y virtualbox-guest-utils virtualbox-guest-x11 ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y virtualbox-guest-additions ;;
@@ -50,8 +50,8 @@ install_virtualbox_tools() {
 }
 
 install_qemu_guest_agent() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y qemu-guest-agent spice-vdagent ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y qemu-guest-agent spice-vdagent ;;
@@ -63,7 +63,7 @@ install_qemu_guest_agent() {
 }
 
 enable_vm_services() {
-  check_sudo
+  check_sudo || return 1
   if ! systemd_available; then log_warn "systemd not available."; return 0; fi
   for svc in vmtoolsd vboxservice qemu-guest-agent spice-vdagentd; do
     if systemctl list-unit-files "${svc}.service" >/dev/null 2>&1; then

@@ -49,29 +49,28 @@ install_java() {
     if ! ask_confirm "Reinstall Java?"; then return 0; fi
   fi
 
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   local java_version
   java_version="$(ask_input "Java version to install" "17")"
 
   case "$PKG_MANAGER" in
     apt)
-      run_cmd_sudo apt-get update -y
-      run_cmd_sudo apt-get install -y "openjdk-${java_version}-jdk"
+      run_cmd_sudo apt-get update -y || return 1
+      run_cmd_sudo apt-get install -y "openjdk-${java_version}-jdk" || return 1
       ;;
     dnf|yum)
-      # shellcheck disable=SC2086
-      run_cmd sudo $PKG_INSTALL "java-${java_version}-openjdk-devel"
+      install_packages "java-${java_version}-openjdk-devel" || return 1
       ;;
     pacman)
-      run_cmd_sudo pacman -S --noconfirm jdk-openjdk
+      run_cmd_sudo pacman -S --noconfirm jdk-openjdk || return 1
       ;;
     zypper)
-      run_cmd_sudo zypper install -y "java-${java_version}-openjdk-devel"
+      run_cmd_sudo zypper install -y "java-${java_version}-openjdk-devel" || return 1
       ;;
     apk)
-      run_cmd_sudo apk add "openjdk${java_version}"
+      run_cmd_sudo apk add "openjdk${java_version}" || return 1
       ;;
     *)
       log_error "Cannot install Java automatically on this system."
@@ -94,33 +93,33 @@ install_jenkins() {
   # Java is required
   if ! is_installed java; then
     log_warn "Java is not installed. Installing Java 17..."
-    install_java
+    install_java || return 1
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   JENKINS_PORT="$(ask_input "Jenkins HTTP port" "$JENKINS_PORT")"
 
   case "$PKG_MANAGER" in
     apt)
-      _install_jenkins_apt
+      _install_jenkins_apt || return 1
       ;;
     dnf|yum)
-      _install_jenkins_rpm
+      _install_jenkins_rpm || return 1
       ;;
     *)
-      _install_jenkins_war
+      _install_jenkins_war || return 1
       ;;
   esac
 
   # Configure port if non-default
-  _configure_jenkins_port "$JENKINS_PORT"
+  _configure_jenkins_port "$JENKINS_PORT" || return 1
 
   # Enable and start
   if systemd_available; then
-    run_cmd_sudo systemctl enable --now jenkins
+    run_cmd_sudo systemctl enable --now jenkins || return 1
     log_ok "Jenkins service started."
   fi
 
@@ -131,45 +130,45 @@ install_jenkins() {
 
 _install_jenkins_apt() {
   log_step "Installing Jenkins on Debian/Ubuntu..."
-  run_cmd_sudo apt-get update -y
-  run_cmd_sudo apt-get install -y curl gnupg
+  run_cmd_sudo apt-get update -y || return 1
+  run_cmd_sudo apt-get install -y curl gnupg || return 1
 
   local tmpdir; tmpdir="$(make_tmpdir)"
-  download_file "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key" "${tmpdir}/jenkins.key"
-  run_cmd_sudo tee /usr/share/keyrings/jenkins-keyring.asc < "${tmpdir}/jenkins.key" > /dev/null
+  download_file "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key" "${tmpdir}/jenkins.key" || return 1
+  run_cmd_sudo tee /usr/share/keyrings/jenkins-keyring.asc < "${tmpdir}/jenkins.key" > /dev/null || return 1
   echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" \
-    | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
-  run_cmd_sudo apt-get update -y
-  run_cmd_sudo apt-get install -y jenkins
+    | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null || return 1
+  run_cmd_sudo apt-get update -y || return 1
+  run_cmd_sudo apt-get install -y jenkins || return 1
 }
 
 _install_jenkins_rpm() {
   log_step "Installing Jenkins on Fedora/RHEL/CentOS..."
   local tmpdir; tmpdir="$(make_tmpdir)"
-  download_file "https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key" "${tmpdir}/jenkins.key"
-  run_cmd_sudo rpm --import "${tmpdir}/jenkins.key"
-  cat > /tmp/jenkins.repo <<'EOF'
+  download_file "https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key" "${tmpdir}/jenkins.key" || return 1
+  run_cmd_sudo rpm --import "${tmpdir}/jenkins.key" || return 1
+  cat > "${tmpdir}/jenkins.repo" <<'EOF'
 [jenkins]
 name=Jenkins-stable
 baseurl=http://pkg.jenkins.io/redhat-stable
 gpgcheck=1
 EOF
-  run_cmd_sudo mv /tmp/jenkins.repo /etc/yum.repos.d/jenkins.repo
-  # shellcheck disable=SC2086
-  run_cmd sudo $PKG_INSTALL jenkins
+  run_cmd_sudo mv "${tmpdir}/jenkins.repo" /etc/yum.repos.d/jenkins.repo || return 1
+  install_packages jenkins || return 1
 }
 
 _install_jenkins_war() {
   log_step "Installing Jenkins via WAR file..."
   local tmpdir; tmpdir="$(make_tmpdir)"
   local jenkins_war="/opt/jenkins.war"
-  download_file "https://get.jenkins.io/war-stable/latest/jenkins.war" "$jenkins_war"
+  download_file "https://get.jenkins.io/war-stable/latest/jenkins.war" "${tmpdir}/jenkins.war" || return 1
+  run_cmd_sudo install -m 0644 "${tmpdir}/jenkins.war" "$jenkins_war" || return 1
   log_ok "Jenkins WAR downloaded: $jenkins_war"
   log_info "Start Jenkins with: java -jar $jenkins_war --httpPort=${JENKINS_PORT}"
 
   # Create systemd unit if available
   if systemd_available; then
-    cat > /tmp/jenkins.service <<EOF
+    cat > "${tmpdir}/jenkins.service" <<EOF
 [Unit]
 Description=Jenkins CI Server
 After=network.target
@@ -185,8 +184,8 @@ WantedBy=multi-user.target
 EOF
     if ask_confirm "Install as systemd service?"; then
       run_cmd_sudo useradd -r -s /bin/false jenkins 2>/dev/null || true
-      run_cmd_sudo mv /tmp/jenkins.service /etc/systemd/system/jenkins.service
-      run_cmd_sudo systemctl daemon-reload
+      run_cmd_sudo mv "${tmpdir}/jenkins.service" /etc/systemd/system/jenkins.service || return 1
+      run_cmd_sudo systemctl daemon-reload || return 1
     fi
   fi
 }
@@ -198,12 +197,13 @@ _configure_jenkins_port() {
   # Systemd override
   if systemd_available; then
     run_cmd_sudo mkdir -p /etc/systemd/system/jenkins.service.d
-    cat > /tmp/jenkins-port.conf <<EOF
+    local tmpdir; tmpdir="$(make_tmpdir)"
+    cat > "${tmpdir}/jenkins-port.conf" <<EOF
 [Service]
 Environment="JENKINS_PORT=${port}"
 EOF
-    run_cmd_sudo mv /tmp/jenkins-port.conf /etc/systemd/system/jenkins.service.d/port.conf
-    run_cmd_sudo systemctl daemon-reload
+    run_cmd_sudo mv "${tmpdir}/jenkins-port.conf" /etc/systemd/system/jenkins.service.d/port.conf || return 1
+    run_cmd_sudo systemctl daemon-reload || return 1
     log_ok "Jenkins port configured: $port"
   fi
 }
@@ -241,9 +241,9 @@ manage_jenkins_service() {
   echo
   read -r -p "Choose: " c
   case "${c:-}" in
-    1) run_cmd_sudo systemctl start jenkins; log_ok "Jenkins started." ;;
-    2) run_cmd_sudo systemctl stop jenkins; log_ok "Jenkins stopped." ;;
-    3) run_cmd_sudo systemctl restart jenkins; log_ok "Jenkins restarted." ;;
+    1) run_cmd_sudo systemctl start jenkins && log_ok "Jenkins started." ;;
+    2) run_cmd_sudo systemctl stop jenkins && log_ok "Jenkins stopped." ;;
+    3) run_cmd_sudo systemctl restart jenkins && log_ok "Jenkins restarted." ;;
     4) service_status jenkins ;;
     5) sudo journalctl -u jenkins -n 50 --no-pager || true ;;
     6)

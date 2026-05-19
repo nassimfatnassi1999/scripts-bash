@@ -40,36 +40,35 @@ install_helm() {
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
       log_step "Installing Helm via apt..."
       local tmpdir; tmpdir="$(make_tmpdir)"
-      download_file "https://baltocdn.com/helm/signing.asc" "${tmpdir}/helm.asc"
-      run_cmd_sudo mkdir -p /usr/share/keyrings
-      run_cmd gpg --dearmor < "${tmpdir}/helm.asc" | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+      download_file "https://baltocdn.com/helm/signing.asc" "${tmpdir}/helm.asc" || return 1
+      run_cmd_sudo mkdir -p /usr/share/keyrings || return 1
+      gpg --dearmor < "${tmpdir}/helm.asc" | sudo tee /usr/share/keyrings/helm.gpg > /dev/null || return 1
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" \
-        | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-      run_cmd_sudo apt-get update -y
-      run_cmd_sudo apt-get install -y helm
+        | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list >/dev/null || return 1
+      run_cmd_sudo apt-get update -y || return 1
+      run_cmd_sudo apt-get install -y helm || return 1
       ;;
     dnf|yum)
       log_step "Installing Helm via rpm..."
-      # shellcheck disable=SC2086
-      run_cmd sudo $PKG_INSTALL helm 2>/dev/null || _install_helm_script
+      install_package helm 2>/dev/null || _install_helm_script || return 1
       ;;
     pacman)
       log_step "Installing Helm via pacman..."
-      run_cmd_sudo pacman -S --noconfirm helm
+      run_cmd_sudo pacman -S --noconfirm helm || return 1
       ;;
     zypper)
       log_step "Installing Helm via zypper..."
-      run_cmd_sudo zypper install -y helm
+      run_cmd_sudo zypper install -y helm || return 1
       ;;
     *)
-      _install_helm_script
+      _install_helm_script || return 1
       ;;
   esac
 
@@ -79,9 +78,9 @@ install_helm() {
 _install_helm_script() {
   log_step "Installing Helm via official install script..."
   local tmpdir; tmpdir="$(make_tmpdir)"
-  download_file "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3" "${tmpdir}/get-helm-3.sh"
+  download_file "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3" "${tmpdir}/get-helm-3.sh" || return 1
   chmod +x "${tmpdir}/get-helm-3.sh"
-  run_cmd bash "${tmpdir}/get-helm-3.sh"
+  run_cmd bash "${tmpdir}/get-helm-3.sh" || return 1
 }
 
 # ---------------------------------------------------------------------------

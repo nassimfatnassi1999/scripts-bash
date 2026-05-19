@@ -2,6 +2,12 @@
 
 set -e
 
+if ! command -v apt >/dev/null 2>&1; then
+  echo "❌ setup_dev_popos.sh supports only apt-based systems (Pop!_OS/Ubuntu/Debian)."
+  echo "👉 For this OS, use: ./scripts/setup-dev-linux.sh"
+  exit 1
+fi
+
 echo "🔄 Mise à jour du système..."
 sudo apt update && sudo apt upgrade -y
 
@@ -73,4 +79,3 @@ echo "🎉 Installation terminée !"
 echo "➡️ Pour lancer le projet React :"
 echo "   cd my-react-app"
 echo "   npm run dev"
-

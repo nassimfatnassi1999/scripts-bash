@@ -403,7 +403,7 @@ run_diagnostics() {
 # ---------------------------------------------------------------------------
 restart_service_if_present() {
   local svc="$1"
-  check_sudo
+  check_sudo || return 1
   if ! systemd_available; then
     log_error "systemd is not available."
     return 1
@@ -419,7 +419,7 @@ restart_service_if_present() {
 }
 
 vacuum_journal() {
-  check_sudo
+  check_sudo || return 1
   require_command journalctl "journalctl is required."
   local days
   days="$(ask_input "Vacuum journal logs older than N days" "7")"
@@ -435,8 +435,8 @@ vacuum_journal() {
 }
 
 package_cleanup() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   log_warn "This removes package cache and/or unused packages where supported."
   if ! ask_confirm "Proceed with package cleanup for ${PKG_MANAGER}?"; then
     log_warn "Cancelled."
@@ -476,7 +476,7 @@ package_cleanup() {
 }
 
 flush_dns_cache() {
-  check_sudo
+  check_sudo || return 1
   if command -v resolvectl >/dev/null 2>&1; then
     run_cmd_sudo resolvectl flush-caches
     log_ok "systemd-resolved DNS cache flushed."

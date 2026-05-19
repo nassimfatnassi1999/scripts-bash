@@ -13,8 +13,8 @@ SCRIPT_DESC="Install tools and run network diagnostics"
 handle_standard_args "$@"
 
 install_network_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y iproute2 iputils-ping dnsutils traceroute mtr-tiny net-tools curl wget nmap tcpdump ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y iproute iputils bind-utils traceroute mtr net-tools curl wget nmap tcpdump ;;
@@ -77,7 +77,7 @@ list_listeners() {
 
 capture_packets() {
   require_command tcpdump
-  check_sudo
+  check_sudo || return 1
   local iface count file
   iface="$(ask_input "Interface" "any")"
   count="$(ask_input "Packet count" "100")"

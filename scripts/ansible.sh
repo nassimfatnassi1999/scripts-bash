@@ -29,8 +29,8 @@ install_ansible() {
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)

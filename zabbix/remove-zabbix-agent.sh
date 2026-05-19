@@ -13,6 +13,11 @@ RED="\e[31m"
 YELLOW="\e[33m"
 NC="\e[0m"
 
+if ! command -v apt >/dev/null 2>&1; then
+    echo -e "${RED}This script supports only apt-based systems (Ubuntu/Debian/Pop!_OS).${NC}"
+    exit 1
+fi
+
 # ---------- CONFIRMATION ---------- #
 echo -e "${RED}⚠️  WARNING: This will completely remove Zabbix Agent and its configuration files.${NC}"
 read -p "Are you sure you want to continue? (y/N): " confirm

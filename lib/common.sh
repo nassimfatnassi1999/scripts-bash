@@ -151,25 +151,49 @@ is_arch_based() {
 # ---------------------------------------------------------------------------
 install_package() {
   local pkg="$1"
-  detect_package_manager 2>/dev/null || true
+  detect_package_manager || return 1
 
-  if [[ -z "$PKG_INSTALL" ]]; then
-    log_error "Cannot install '$pkg': no package manager detected."
-    return 1
-  fi
+  install_packages "$pkg"
+}
 
-  log_step "Installing package: $pkg"
-  # shellcheck disable=SC2086
-  run_cmd sudo $PKG_INSTALL "$pkg"
+install_packages() {
+  local -a packages=("$@")
+  detect_package_manager || return 1
+  [[ "${#packages[@]}" -eq 0 ]] && return 0
+
+  check_sudo || return 1
+  log_step "Installing package(s): ${packages[*]}"
+  case "$PKG_MANAGER" in
+    apt)    run_cmd_sudo apt-get install -y "${packages[@]}" ;;
+    dnf)    run_cmd_sudo dnf install -y "${packages[@]}" ;;
+    yum)    run_cmd_sudo yum install -y "${packages[@]}" ;;
+    pacman) run_cmd_sudo pacman -S --noconfirm "${packages[@]}" ;;
+    zypper) run_cmd_sudo zypper install -y "${packages[@]}" ;;
+    apk)    run_cmd_sudo apk add "${packages[@]}" ;;
+    *)
+      log_error "Cannot install packages: unsupported package manager '${PKG_MANAGER:-unknown}'."
+      return 1
+      ;;
+  esac
 }
 
 # Update package index
 update_package_index() {
-  detect_package_manager 2>/dev/null || true
-  [[ -z "$PKG_UPDATE" ]] && return 1
+  detect_package_manager || return 1
+  check_sudo || return 1
   log_step "Updating package index..."
-  # shellcheck disable=SC2086
-  run_cmd sudo $PKG_UPDATE
+  case "$PKG_MANAGER" in
+    apt)    run_cmd_sudo apt-get update -y ;;
+    dnf)    run_cmd_sudo dnf check-update || true ;;
+    yum)    run_cmd_sudo yum check-update || true ;;
+    pacman) run_cmd_sudo pacman -Sy ;;
+    zypper) run_cmd_sudo zypper refresh ;;
+    apk)    run_cmd_sudo apk update ;;
+    *)
+      log_error "Cannot update package index: unsupported package manager '${PKG_MANAGER:-unknown}'."
+      return 1
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -490,6 +514,14 @@ check_prerequisites() {
 show_env_info() {
   detect_os
   detect_package_manager 2>/dev/null || true
+  local sudo_status
+  if command -v sudo >/dev/null 2>&1; then
+    sudo_status="$(sudo -n true 2>/dev/null && echo "passwordless" || echo "requires password")"
+  elif [[ "$EUID" -eq 0 ]]; then
+    sudo_status="running as root"
+  else
+    sudo_status="not installed"
+  fi
   echo
   log_info "=== Environment Information ==="
   echo "  OS          : ${OS_PRETTY_NAME}"
@@ -502,7 +534,7 @@ show_env_info() {
   echo "  Hostname    : $(hostname)"
   echo "  Kernel      : $(uname -r)"
   echo "  Internet    : $(check_internet && echo "OK" || echo "NOT reachable")"
-  echo "  Sudo        : $(sudo -n true 2>/dev/null && echo "passwordless" || echo "requires password")"
+  echo "  Sudo        : $sudo_status"
   echo
 }
 

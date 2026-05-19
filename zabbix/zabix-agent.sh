@@ -16,6 +16,11 @@ RED="\e[31m"
 YELLOW="\e[33m"
 NC="\e[0m"
 
+if ! command -v apt >/dev/null 2>&1; then
+    echo -e "${RED}This script supports only apt-based systems (Ubuntu/Debian/Pop!_OS).${NC}"
+    exit 1
+fi
+
 # ---------- FUNCTIONS ---------- #
 
 # ✅ Validate user input (prevent empty entries)
@@ -121,4 +126,3 @@ show_status
 echo -e "\n${GREEN}🎉 Zabbix Agent successfully installed and configured!${NC}"
 echo -e "${YELLOW}➡️  Add this host in your Zabbix Server UI using hostname: ${HOSTNAME_CUSTOM}${NC}"
 echo -e "${YELLOW}➡️  Server IP configured: ${ZABBIX_SERVER_IP}${NC}"
-

@@ -32,7 +32,7 @@ write_sudo_file() {
 install_packages_if_missing() {
   local -a packages=("$@")
   local pkg
-  detect_package_manager
+  detect_package_manager || return 1
   for pkg in "${packages[@]}"; do
     case "$PKG_MANAGER" in
       apt)
@@ -137,16 +137,16 @@ install_terraform() {
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
-    apt) _install_terraform_apt ;;
-    dnf|yum) _install_terraform_rpm ;;
-    pacman) _install_terraform_pacman ;;
-    zypper) _install_terraform_zypper ;;
-    apk) _install_terraform_binary ;;
-    *) _install_terraform_binary ;;
+    apt) _install_terraform_apt || return 1 ;;
+    dnf|yum) _install_terraform_rpm || return 1 ;;
+    pacman) _install_terraform_pacman || return 1 ;;
+    zypper) _install_terraform_zypper || return 1 ;;
+    apk) _install_terraform_binary || return 1 ;;
+    *) _install_terraform_binary || return 1 ;;
   esac
 
   if is_installed terraform || [[ "${DRY_RUN:-0}" == "1" ]]; then
@@ -158,16 +158,16 @@ install_terraform() {
 
 _install_terraform_apt() {
   log_step "Installing Terraform via HashiCorp apt repository..."
-  install_packages_if_missing ca-certificates curl gnupg lsb-release
-  run_cmd_sudo install -d -m 0755 /usr/share/keyrings
+  install_packages_if_missing ca-certificates curl gnupg lsb-release || return 1
+  run_cmd_sudo install -d -m 0755 /usr/share/keyrings || return 1
 
   local tmpdir
   tmpdir="$(make_tmpdir)"
-  download_file "https://apt.releases.hashicorp.com/gpg" "${tmpdir}/hashicorp.asc"
+  download_file "https://apt.releases.hashicorp.com/gpg" "${tmpdir}/hashicorp.asc" || return 1
   if [[ "${DRY_RUN:-0}" == "1" ]]; then
     log_info "[DRY-RUN] Would install HashiCorp apt key."
   else
-    gpg --dearmor < "${tmpdir}/hashicorp.asc" | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null
+    gpg --dearmor < "${tmpdir}/hashicorp.asc" | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null || return 1
   fi
 
   local codename arch
@@ -180,9 +180,9 @@ _install_terraform_apt() {
   fi
   arch="$(dpkg --print-architecture 2>/dev/null || echo "amd64")"
   write_sudo_file /etc/apt/sources.list.d/hashicorp.list \
-    "deb [arch=${arch} signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com ${codename} main"
-  run_cmd_sudo apt-get update -y
-  run_cmd_sudo apt-get install -y terraform
+    "deb [arch=${arch} signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com ${codename} main" || return 1
+  run_cmd_sudo apt-get update -y || return 1
+  run_cmd_sudo apt-get install -y terraform || return 1
 }
 
 _install_terraform_rpm() {
@@ -201,13 +201,12 @@ enabled=1
 gpgcheck=1
 gpgkey=https://rpm.releases.hashicorp.com/gpg"
 
-  # shellcheck disable=SC2086
-  run_cmd sudo $PKG_INSTALL terraform
+  install_package terraform || return 1
 }
 
 _install_terraform_pacman() {
   log_step "Installing Terraform via pacman..."
-  run_cmd_sudo pacman -S --noconfirm terraform
+  run_cmd_sudo pacman -S --noconfirm terraform || return 1
 }
 
 _install_terraform_zypper() {
@@ -245,9 +244,9 @@ _install_terraform_binary() {
 
   tmpdir="$(make_tmpdir)"
   url="https://releases.hashicorp.com/terraform/${version}/terraform_${version}_linux_${arch}.zip"
-  download_file "$url" "${tmpdir}/terraform.zip"
-  run_cmd unzip -q "${tmpdir}/terraform.zip" -d "${tmpdir}"
-  run_cmd_sudo install -m 0755 "${tmpdir}/terraform" /usr/local/bin/terraform
+  download_file "$url" "${tmpdir}/terraform.zip" || return 1
+  run_cmd unzip -q "${tmpdir}/terraform.zip" -d "${tmpdir}" || return 1
+  run_cmd_sudo install -m 0755 "${tmpdir}/terraform" /usr/local/bin/terraform || return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -260,15 +259,15 @@ install_opentofu() {
   fi
 
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
-    apt) _install_tofu_apt ;;
-    dnf|yum|zypper) _install_tofu_rpm ;;
-    pacman) _install_tofu_pacman ;;
-    apk) _install_tofu_binary ;;
-    *) _install_tofu_binary ;;
+    apt) _install_tofu_apt || return 1 ;;
+    dnf|yum|zypper) _install_tofu_rpm || return 1 ;;
+    pacman) _install_tofu_pacman || return 1 ;;
+    apk) _install_tofu_binary || return 1 ;;
+    *) _install_tofu_binary || return 1 ;;
   esac
 
   if is_installed tofu || [[ "${DRY_RUN:-0}" == "1" ]]; then
@@ -280,25 +279,25 @@ install_opentofu() {
 
 _install_tofu_apt() {
   log_step "Installing OpenTofu via official apt repository..."
-  install_packages_if_missing ca-certificates curl gnupg
-  run_cmd_sudo install -d -m 0755 /etc/apt/keyrings /usr/share/keyrings
+  install_packages_if_missing ca-certificates curl gnupg || return 1
+  run_cmd_sudo install -d -m 0755 /etc/apt/keyrings /usr/share/keyrings || return 1
 
   local tmpdir
   tmpdir="$(make_tmpdir)"
-  download_file "https://get.opentofu.org/opentofu.gpg" "${tmpdir}/opentofu.asc"
-  download_file "https://packages.opentofu.org/opentofu/tofu/gpgkey" "${tmpdir}/opentofu-package.asc"
+  download_file "https://get.opentofu.org/opentofu.gpg" "${tmpdir}/opentofu.asc" || return 1
+  download_file "https://packages.opentofu.org/opentofu/tofu/gpgkey" "${tmpdir}/opentofu-package.asc" || return 1
 
   if [[ "${DRY_RUN:-0}" == "1" ]]; then
     log_info "[DRY-RUN] Would install OpenTofu apt keys."
   else
-    gpg --dearmor < "${tmpdir}/opentofu.asc" | sudo tee /etc/apt/keyrings/opentofu.gpg >/dev/null
-    gpg --dearmor < "${tmpdir}/opentofu-package.asc" | sudo tee /usr/share/keyrings/opentofu-archive-keyring.gpg >/dev/null
+    gpg --dearmor < "${tmpdir}/opentofu.asc" | sudo tee /etc/apt/keyrings/opentofu.gpg >/dev/null || return 1
+    gpg --dearmor < "${tmpdir}/opentofu-package.asc" | sudo tee /usr/share/keyrings/opentofu-archive-keyring.gpg >/dev/null || return 1
   fi
 
   write_sudo_file /etc/apt/sources.list.d/opentofu.list \
-    "deb [signed-by=/etc/apt/keyrings/opentofu.gpg,/usr/share/keyrings/opentofu-archive-keyring.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main"
-  run_cmd_sudo apt-get update -y
-  run_cmd_sudo apt-get install -y tofu
+    "deb [signed-by=/etc/apt/keyrings/opentofu.gpg,/usr/share/keyrings/opentofu-archive-keyring.gpg] https://packages.opentofu.org/opentofu/tofu/any/ any main" || return 1
+  run_cmd_sudo apt-get update -y || return 1
+  run_cmd_sudo apt-get install -y tofu || return 1
 }
 
 _install_tofu_rpm() {
@@ -312,21 +311,20 @@ enabled=1
 gpgkey=https://get.opentofu.org/opentofu.gpg
        https://packages.opentofu.org/opentofu/tofu/gpgkey
 sslverify=1
-metadata_expire=300'
+metadata_expire=300' || return 1
 
-  # shellcheck disable=SC2086
-  run_cmd sudo $PKG_INSTALL tofu
+  install_package tofu || return 1
 }
 
 _install_tofu_pacman() {
   log_step "Installing OpenTofu on Arch Linux..."
   if pacman -Si opentofu >/dev/null 2>&1; then
-    run_cmd_sudo pacman -S --noconfirm opentofu
+    run_cmd_sudo pacman -S --noconfirm opentofu || return 1
   elif pacman -Si tofu >/dev/null 2>&1; then
-    run_cmd_sudo pacman -S --noconfirm tofu
+    run_cmd_sudo pacman -S --noconfirm tofu || return 1
   else
     log_warn "OpenTofu package unavailable via pacman. Falling back to binary install."
-    _install_tofu_binary
+    _install_tofu_binary || return 1
   fi
 }
 
@@ -357,9 +355,9 @@ _install_tofu_binary() {
 
   tmpdir="$(make_tmpdir)"
   url="https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_${arch}.zip"
-  download_file "$url" "${tmpdir}/tofu.zip"
-  run_cmd unzip -q "${tmpdir}/tofu.zip" -d "${tmpdir}"
-  run_cmd_sudo install -m 0755 "${tmpdir}/tofu" /usr/local/bin/tofu
+  download_file "$url" "${tmpdir}/tofu.zip" || return 1
+  run_cmd unzip -q "${tmpdir}/tofu.zip" -d "${tmpdir}" || return 1
+  run_cmd_sudo install -m 0755 "${tmpdir}/tofu" /usr/local/bin/tofu || return 1
 }
 
 # ---------------------------------------------------------------------------

@@ -13,8 +13,8 @@ SCRIPT_DESC="Install and run common monitoring and observability tools"
 handle_standard_args "$@"
 
 install_monitoring_tools() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y htop iotop iftop sysstat lsof procps net-tools curl ;;
     dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y htop iotop iftop sysstat lsof procps-ng net-tools curl ;;
@@ -47,8 +47,8 @@ process_monitor() {
 
 io_monitor() {
   if command -v iotop >/dev/null 2>&1; then
-    check_sudo
-    run_cmd_sudo iotop
+    check_sudo || return 1
+    run_cmd_sudo iotop || return 1
   elif command -v iostat >/dev/null 2>&1; then
     iostat -xz 1 5
   else
@@ -58,8 +58,8 @@ io_monitor() {
 
 network_monitor() {
   if command -v iftop >/dev/null 2>&1; then
-    check_sudo
-    run_cmd_sudo iftop
+    check_sudo || return 1
+    run_cmd_sudo iftop || return 1
   elif command -v ss >/dev/null 2>&1; then
     ss -tupn
   else
@@ -88,8 +88,8 @@ watch_command() {
 }
 
 enable_sysstat() {
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   if ! command -v sar >/dev/null 2>&1; then
     log_warn "sysstat is not installed."
     if ask_confirm "Install monitoring tools now?"; then install_monitoring_tools; fi

@@ -17,9 +17,9 @@ handle_standard_args "$@"
 # ---------------------------------------------------------------------------
 install_base_tools() {
   log_step "Installing base tools..."
-  check_sudo
-  detect_package_manager
-  update_package_index
+  check_sudo || return 1
+  detect_package_manager || return 1
+  update_package_index || return 1
 
   local base_pkgs=()
   case "$PKG_MANAGER" in
@@ -48,8 +48,7 @@ install_base_tools() {
 
   for pkg in "${base_pkgs[@]}"; do
     if ! is_installed "${pkg%%[- ]*}"; then
-      # shellcheck disable=SC2086
-      run_cmd_sudo $PKG_INSTALL "$pkg" 2>/dev/null || log_warn "Failed to install: $pkg"
+      install_package "$pkg" 2>/dev/null || log_warn "Failed to install: $pkg"
     else
       log_ok "Already installed: $pkg"
     fi
@@ -62,22 +61,24 @@ install_vscode() {
     return 0
   fi
   require_internet
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   log_step "Installing Visual Studio Code..."
   case "$PKG_MANAGER" in
     apt)
       local tmpdir; tmpdir="$(make_tmpdir)"
-      download_file "https://packages.microsoft.com/keys/microsoft.asc" "${tmpdir}/microsoft.asc"
-      run_cmd_sudo gpg --dearmor -o /usr/share/keyrings/packages.microsoft.gpg < "${tmpdir}/microsoft.asc"
+      download_file "https://packages.microsoft.com/keys/microsoft.asc" "${tmpdir}/microsoft.asc" || return 1
+      run_cmd_sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/packages.microsoft.gpg < "${tmpdir}/microsoft.asc" || return 1
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" \
-        | sudo tee /etc/apt/sources.list.d/vscode.list
-      run_cmd_sudo apt-get update -y
-      run_cmd_sudo apt-get install -y code
+        | sudo tee /etc/apt/sources.list.d/vscode.list >/dev/null || return 1
+      run_cmd_sudo apt-get update -y || return 1
+      run_cmd_sudo apt-get install -y code || return 1
       ;;
     dnf|yum)
-      run_cmd_sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
-      cat > /tmp/vscode.repo <<'EOF'
+      local tmpdir; tmpdir="$(make_tmpdir)"
+      download_file "https://packages.microsoft.com/keys/microsoft.asc" "${tmpdir}/microsoft.asc" || return 1
+      run_cmd_sudo rpm --import "${tmpdir}/microsoft.asc" || return 1
+      cat > "${tmpdir}/vscode.repo" <<'EOF'
 [code]
 name=Visual Studio Code
 baseurl=https://packages.microsoft.com/yumrepos/vscode
@@ -85,9 +86,8 @@ enabled=1
 gpgcheck=1
 gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 EOF
-      run_cmd_sudo mv /tmp/vscode.repo /etc/yum.repos.d/vscode.repo
-      # shellcheck disable=SC2086
-      run_cmd sudo $PKG_INSTALL code
+      run_cmd_sudo mv "${tmpdir}/vscode.repo" /etc/yum.repos.d/vscode.repo || return 1
+      install_package code || return 1
       ;;
     pacman)
       if is_installed yay; then
@@ -121,8 +121,8 @@ install_nvm_node() {
   else
     log_step "Installing NVM v${nvm_version}..."
     local tmpdir; tmpdir="$(make_tmpdir)"
-    download_file "https://raw.githubusercontent.com/nvm-sh/nvm/v${nvm_version}/install.sh" "${tmpdir}/nvm-install.sh"
-    bash "${tmpdir}/nvm-install.sh"
+    download_file "https://raw.githubusercontent.com/nvm-sh/nvm/v${nvm_version}/install.sh" "${tmpdir}/nvm-install.sh" || return 1
+    bash "${tmpdir}/nvm-install.sh" || return 1
     log_ok "NVM installed."
   fi
 
@@ -137,9 +137,9 @@ install_nvm_node() {
   fi
 
   log_step "Installing Node.js LTS..."
-  nvm install --lts
-  nvm use --lts
-  nvm alias default 'lts/*'
+  nvm install --lts || return 1
+  nvm use --lts || return 1
+  nvm alias default 'lts/*' || return 1
   log_ok "Node.js: $(node -v) | npm: $(npm -v)"
 }
 
@@ -169,11 +169,11 @@ install_git_config() {
 
 install_python_tools() {
   log_step "Installing Python tools..."
-  check_sudo
-  detect_package_manager
+  check_sudo || return 1
+  detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt)    run_cmd_sudo apt-get install -y python3 python3-pip python3-venv ;;
-    dnf|yum) run_cmd sudo "$PKG_MANAGER" install -y python3 python3-pip ;;
+    apt)     run_cmd_sudo apt-get install -y python3 python3-pip python3-venv ;;
+    dnf|yum) install_packages python3 python3-pip ;;
     pacman)  run_cmd_sudo pacman -S --noconfirm python python-pip ;;
     zypper)  run_cmd_sudo zypper install -y python3 python3-pip ;;
     apk)     run_cmd_sudo apk add python3 py3-pip ;;
@@ -187,8 +187,8 @@ install_zsh_oh_my_zsh() {
     log_ok "Zsh already installed."
   else
     log_step "Installing Zsh..."
-    check_sudo
-    install_package zsh
+    check_sudo || return 1
+    install_package zsh || return 1
   fi
 
   if [[ ! -d "${HOME}/.oh-my-zsh" ]]; then
@@ -196,8 +196,8 @@ install_zsh_oh_my_zsh() {
       require_internet
       local tmpdir; tmpdir="$(make_tmpdir)"
       download_file "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh" \
-        "${tmpdir}/omz-install.sh"
-      RUNZSH=no CHSH=no bash "${tmpdir}/omz-install.sh"
+        "${tmpdir}/omz-install.sh" || return 1
+      RUNZSH=no CHSH=no bash "${tmpdir}/omz-install.sh" || return 1
       log_ok "Oh My Zsh installed."
     fi
   else
@@ -205,8 +205,8 @@ install_zsh_oh_my_zsh() {
   fi
 
   if ask_confirm "Set Zsh as default shell?"; then
-    check_sudo
-    run_cmd_sudo chsh -s "$(which zsh)" "$(whoami)"
+    check_sudo || return 1
+    run_cmd_sudo chsh -s "$(which zsh)" "$(whoami)" || return 1
     log_ok "Default shell changed to Zsh. Log out and back in."
   fi
 }
