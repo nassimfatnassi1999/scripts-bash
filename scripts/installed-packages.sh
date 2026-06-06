@@ -127,6 +127,41 @@ import_pacman() {
 }
 
 # ---------------------------------------------------------------------------
+# HOMEBREW
+# ---------------------------------------------------------------------------
+list_brew_all() {
+  log_info "=== Installed Homebrew formulae ==="
+  brew leaves | sort
+  echo
+  log_info "=== Installed Homebrew casks ==="
+  brew list --cask 2>/dev/null | sort || true
+}
+
+export_brew() {
+  mkdir -p "$EXPORT_DIR"
+  local outfile="${EXPORT_DIR}/brew-packages-$(date +'%Y%m%d_%H%M%S').txt"
+  {
+    brew leaves | sort
+    brew list --cask 2>/dev/null | sed 's/^/--cask /' | sort || true
+  } > "$outfile"
+  log_ok "Homebrew packages exported to: $outfile"
+}
+
+import_brew() {
+  local infile package
+  infile="$(ask_input "Package list file path")"
+  [[ ! -f "$infile" ]] && { log_error "File not found: $infile"; return 1; }
+  if ask_confirm "Install all Homebrew packages from $infile?"; then
+    while IFS= read -r package; do
+      [[ -z "$package" || "$package" == \#* ]] && continue
+      # shellcheck disable=SC2086
+      run_cmd brew install $package
+    done < "$infile"
+    log_ok "Packages installed."
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # SNAP
 # ---------------------------------------------------------------------------
 list_snap() {
@@ -174,7 +209,7 @@ show_shell_history_installs() {
   local histfile="${HISTFILE:-${HOME}/.bash_history}"
   [[ -f "${HOME}/.zsh_history" ]] && histfile="${HOME}/.zsh_history"
   if [[ -f "$histfile" ]]; then
-    grep -E "(apt|dnf|yum|pacman|zypper|apk|snap|flatpak).*(install)" "$histfile" 2>/dev/null | tail -20 || true
+    grep -E "(apt|dnf|yum|pacman|zypper|apk|brew|snap|flatpak).*(install)" "$histfile" 2>/dev/null | tail -20 || true
   else
     log_warn "No shell history file found."
   fi
@@ -201,6 +236,13 @@ show_largest_packages() {
       pacman -Qi | awk '/^Name/{name=$3} /^Installed Size/{print $4$5, name}' \
         | sort -h -r | head -20
       ;;
+    brew)
+      brew list --formula | while IFS= read -r formula; do
+        prefix="$(brew --prefix "$formula" 2>/dev/null || true)"
+        [[ -z "$prefix" ]] && continue
+        du -sk "$prefix" 2>/dev/null | awk -v name="$formula" '{printf "%-10s %s\n", $1"K", name}'
+      done | sort -rn | head -20
+      ;;
     *)
       log_warn "Largest packages audit not supported for $PKG_MANAGER"
       ;;
@@ -218,6 +260,7 @@ do_export_all() {
     apt)    export_apt ;;
     dnf|yum) export_rpm ;;
     pacman) export_pacman ;;
+    brew)   export_brew ;;
     *) log_warn "Auto-export not supported for: $PKG_MANAGER" ;;
   esac
   export_snap
@@ -261,6 +304,7 @@ main() {
           apt)    list_apt_all || true ;;
           dnf|yum) list_rpm_all || true ;;
           pacman) list_pacman_all || true ;;
+          brew)   list_brew_all || true ;;
           *) log_warn "List not supported for $PKG_MANAGER" ;;
         esac
         pause
@@ -278,6 +322,7 @@ main() {
           apt)    import_apt || true ;;
           dnf|yum) import_rpm || true ;;
           pacman) import_pacman || true ;;
+          brew)   import_brew || true ;;
           *) log_warn "Import not supported for $PKG_MANAGER" ;;
         esac
         pause

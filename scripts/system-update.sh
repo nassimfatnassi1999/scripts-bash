@@ -13,21 +13,20 @@ SCRIPT_DESC="Update packages, clean caches, inspect reboot status"
 handle_standard_args "$@"
 
 pkg_update_index() {
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt) run_cmd_sudo apt-get update -y ;;
-    dnf) run_cmd_sudo dnf check-update || true ;;
-    yum) run_cmd_sudo yum check-update || true ;;
-    pacman) run_cmd_sudo pacman -Sy ;;
-    zypper) run_cmd_sudo zypper refresh ;;
-    apk) run_cmd_sudo apk update ;;
+    apt) check_sudo || return 1; run_cmd_sudo apt-get update -y ;;
+    dnf) check_sudo || return 1; run_cmd_sudo dnf check-update || true ;;
+    yum) check_sudo || return 1; run_cmd_sudo yum check-update || true ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -Sy ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper refresh ;;
+    apk) check_sudo || return 1; run_cmd_sudo apk update ;;
+    brew) run_cmd brew update ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }
 
 pkg_upgrade() {
-  check_sudo || return 1
   detect_package_manager || return 1
   log_warn "This will upgrade installed packages on this system."
   [[ "${DRY_RUN:-0}" == "1" ]] && log_info "Dry-run mode is enabled."
@@ -42,13 +41,13 @@ pkg_upgrade() {
     pacman) run_cmd_sudo pacman -Syu --noconfirm ;;
     zypper) run_cmd_sudo zypper update -y ;;
     apk) run_cmd_sudo apk upgrade ;;
+    brew) run_cmd brew upgrade ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
   log_ok "System upgrade completed."
 }
 
 pkg_full_upgrade() {
-  check_sudo || return 1
   detect_package_manager || return 1
   log_warn "Full upgrade may install/remove packages to satisfy dependencies."
   if ! ask_confirm "Proceed with full upgrade?"; then log_warn "Cancelled."; return 0; fi
@@ -62,6 +61,7 @@ pkg_full_upgrade() {
     pacman) run_cmd_sudo pacman -Syu --noconfirm ;;
     zypper) run_cmd_sudo zypper dup -y ;;
     apk) run_cmd_sudo apk upgrade --available ;;
+    brew) run_cmd brew update; run_cmd brew upgrade ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
   log_ok "Full upgrade completed."
@@ -82,12 +82,15 @@ list_updates() {
       run_cmd_sudo apk update
       apk version -l '<' || true
       ;;
+    brew)
+      brew update
+      brew outdated || true
+      ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }
 
 cleanup_packages() {
-  check_sudo || return 1
   detect_package_manager || return 1
   log_warn "This removes package caches and unused dependencies where supported."
   if ! ask_confirm "Proceed with cleanup?"; then log_warn "Cancelled."; return 0; fi
@@ -108,13 +111,16 @@ cleanup_packages() {
     pacman) run_cmd_sudo pacman -Sc --noconfirm ;;
     zypper) run_cmd_sudo zypper clean --all ;;
     apk) run_cmd_sudo apk cache clean ;;
+    brew)
+      run_cmd brew cleanup
+      run_cmd brew autoremove || true
+      ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
   log_ok "Cleanup completed."
 }
 
 repair_package_db() {
-  check_sudo || return 1
   detect_package_manager || return 1
   log_warn "This attempts package database or dependency repair."
   if ! ask_confirm "Proceed with repair for ${PKG_MANAGER}?"; then log_warn "Cancelled."; return 0; fi
@@ -131,6 +137,7 @@ repair_package_db() {
       ;;
     zypper) run_cmd_sudo zypper verify -y ;;
     apk) run_cmd_sudo apk fix ;;
+    brew) run_cmd brew doctor || true ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }
@@ -144,6 +151,8 @@ show_reboot_status() {
     if needs-restarting -r >/dev/null 2>&1; then log_ok "No reboot required."; else log_warn "Reboot may be required."; fi
   elif command -v zypper >/dev/null 2>&1; then
     zypper ps -s || true
+  elif [[ "$(uname -s)" == "Darwin" ]]; then
+    log_info "macOS does not expose a Homebrew-specific reboot marker."
   else
     log_info "No distro-specific reboot marker found."
   fi
@@ -157,6 +166,7 @@ show_kernel_info() {
     dnf|yum|zypper) rpm -qa kernel\* 2>/dev/null | sort | tail -15 || true ;;
     pacman) pacman -Q linux linux-lts 2>/dev/null || true ;;
     apk) apk info | grep -E '^linux-' || true ;;
+    brew) log_info "Kernel package listing is not managed by Homebrew on macOS." ;;
   esac
 }
 

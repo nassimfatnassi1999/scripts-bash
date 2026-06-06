@@ -38,7 +38,6 @@ install_kubectl() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   local install_method
@@ -58,10 +57,13 @@ _install_kubectl_binary() {
   log_step "Downloading kubectl binary..."
   local arch
   arch="$(get_arch_suffix)"
+  local os="linux"
+  [[ "$(uname -s)" == "Darwin" ]] && os="darwin"
   local version
   version="$(curl -fsSL https://dl.k8s.io/release/stable.txt 2>/dev/null || echo "v1.29.0")"
   local tmpdir; tmpdir="$(make_tmpdir)"
-  download_file "https://dl.k8s.io/release/${version}/bin/linux/${arch}/kubectl" "${tmpdir}/kubectl" || return 1
+  download_file "https://dl.k8s.io/release/${version}/bin/${os}/${arch}/kubectl" "${tmpdir}/kubectl" || return 1
+  check_sudo || return 1
   run_cmd_sudo install -m 755 "${tmpdir}/kubectl" /usr/local/bin/kubectl || return 1
 }
 
@@ -69,6 +71,7 @@ _install_kubectl_pkg() {
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       run_cmd_sudo apt-get update -y || return 1
       run_cmd_sudo apt-get install -y ca-certificates curl gnupg || return 1
       run_cmd_sudo mkdir -p /etc/apt/keyrings || return 1
@@ -81,6 +84,7 @@ _install_kubectl_pkg() {
       run_cmd_sudo apt-get install -y kubectl || return 1
       ;;
     dnf|yum)
+      check_sudo || return 1
       local tmpdir; tmpdir="$(make_tmpdir)"
       cat > "${tmpdir}/kubernetes.repo" <<'EOF'
 [kubernetes]
@@ -94,7 +98,11 @@ EOF
       install_package kubectl || return 1
       ;;
     pacman)
+      check_sudo || return 1
       run_cmd_sudo pacman -S --noconfirm kubectl || return 1
+      ;;
+    brew)
+      run_cmd brew install kubectl || return 1
       ;;
     *)
       _install_kubectl_binary

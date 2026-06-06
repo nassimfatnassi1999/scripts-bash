@@ -13,14 +13,14 @@ SCRIPT_DESC="Install common developer toolchains and CLI utilities"
 handle_standard_args "$@"
 
 install_packages() {
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y "$@" ;;
-    dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y "$@" ;;
-    pacman) run_cmd_sudo pacman -S --noconfirm "$@" ;;
-    zypper) run_cmd_sudo zypper install -y "$@" ;;
-    apk) run_cmd_sudo apk add "$@" ;;
+    apt) check_sudo || return 1; run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y "$@" ;;
+    dnf|yum) check_sudo || return 1; run_cmd_sudo "$PKG_MANAGER" install -y "$@" ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm "$@" ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper install -y "$@" ;;
+    apk) check_sudo || return 1; run_cmd_sudo apk add "$@" ;;
+    brew) run_cmd brew install "$@" ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }
@@ -33,6 +33,7 @@ install_core_tools() {
     pacman) install_packages base-devel curl wget git ca-certificates gnupg unzip jq pkgconf ;;
     zypper) install_packages patterns-devel-base-devel_basis curl wget git ca-certificates gpg2 unzip jq pkg-config ;;
     apk) install_packages build-base curl wget git ca-certificates gnupg unzip jq pkgconf ;;
+    brew) install_packages curl wget git gnupg unzip jq make pkg-config ;;
   esac
 }
 
@@ -44,6 +45,7 @@ install_python() {
     pacman) install_packages python python-pip python-pipx ;;
     zypper) install_packages python3 python3-pip python3-pipx ;;
     apk) install_packages python3 py3-pip pipx ;;
+    brew) install_packages python pipx ;;
   esac
 }
 
@@ -55,6 +57,7 @@ install_node() {
     pacman) install_packages nodejs npm ;;
     zypper) install_packages nodejs npm ;;
     apk) install_packages nodejs npm ;;
+    brew) install_packages node ;;
   esac
 }
 
@@ -66,6 +69,7 @@ install_go() {
     pacman) install_packages go ;;
     zypper) install_packages go ;;
     apk) install_packages go ;;
+    brew) install_packages go ;;
   esac
 }
 
@@ -93,6 +97,7 @@ install_shell_tools() {
     pacman) install_packages shellcheck shfmt ripgrep fd bat fzf tree tmux ;;
     zypper) install_packages ShellCheck shfmt ripgrep fd bat fzf tree tmux ;;
     apk) install_packages shellcheck shfmt ripgrep fd bat fzf tree tmux ;;
+    brew) install_packages shellcheck shfmt ripgrep fd bat fzf tree tmux ;;
   esac
 }
 

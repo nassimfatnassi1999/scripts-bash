@@ -60,7 +60,12 @@ detect_os() {
   ARCH="$(uname -m)"
   SHELL_NAME="$(basename "${SHELL:-bash}")"
 
-  if [[ -f /etc/os-release ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    OS_ID="macos"
+    OS_ID_LIKE="darwin"
+    OS_VERSION_ID="$(sw_vers -productVersion 2>/dev/null || true)"
+    OS_PRETTY_NAME="macOS ${OS_VERSION_ID:-unknown}"
+  elif [[ -f /etc/os-release ]]; then
     # shellcheck disable=SC1091
     source /etc/os-release
     OS_ID="${ID:-unknown}"
@@ -119,6 +124,12 @@ detect_package_manager() {
     PKG_UPDATE="apk update"
     PKG_REMOVE="apk del"
     PKG_QUERY="apk info"
+  elif command -v brew >/dev/null 2>&1; then
+    PKG_MANAGER="brew"
+    PKG_INSTALL="brew install"
+    PKG_UPDATE="brew update"
+    PKG_REMOVE="brew uninstall"
+    PKG_QUERY="brew list"
   else
     PKG_MANAGER="unknown"
     PKG_INSTALL=""
@@ -146,6 +157,11 @@ is_arch_based() {
   [[ "$PKG_MANAGER" == "pacman" ]]
 }
 
+is_macos() {
+  detect_os
+  [[ "$OS_ID" == "macos" ]]
+}
+
 # ---------------------------------------------------------------------------
 # PACKAGE INSTALLATION
 # ---------------------------------------------------------------------------
@@ -161,15 +177,15 @@ install_packages() {
   detect_package_manager || return 1
   [[ "${#packages[@]}" -eq 0 ]] && return 0
 
-  check_sudo || return 1
   log_step "Installing package(s): ${packages[*]}"
   case "$PKG_MANAGER" in
-    apt)    run_cmd_sudo apt-get install -y "${packages[@]}" ;;
-    dnf)    run_cmd_sudo dnf install -y "${packages[@]}" ;;
-    yum)    run_cmd_sudo yum install -y "${packages[@]}" ;;
-    pacman) run_cmd_sudo pacman -S --noconfirm "${packages[@]}" ;;
-    zypper) run_cmd_sudo zypper install -y "${packages[@]}" ;;
-    apk)    run_cmd_sudo apk add "${packages[@]}" ;;
+    apt)    check_sudo || return 1; run_cmd_sudo apt-get install -y "${packages[@]}" ;;
+    dnf)    check_sudo || return 1; run_cmd_sudo dnf install -y "${packages[@]}" ;;
+    yum)    check_sudo || return 1; run_cmd_sudo yum install -y "${packages[@]}" ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm "${packages[@]}" ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper install -y "${packages[@]}" ;;
+    apk)    check_sudo || return 1; run_cmd_sudo apk add "${packages[@]}" ;;
+    brew)   run_cmd brew install "${packages[@]}" ;;
     *)
       log_error "Cannot install packages: unsupported package manager '${PKG_MANAGER:-unknown}'."
       return 1
@@ -180,15 +196,15 @@ install_packages() {
 # Update package index
 update_package_index() {
   detect_package_manager || return 1
-  check_sudo || return 1
   log_step "Updating package index..."
   case "$PKG_MANAGER" in
-    apt)    run_cmd_sudo apt-get update -y ;;
-    dnf)    run_cmd_sudo dnf check-update || true ;;
-    yum)    run_cmd_sudo yum check-update || true ;;
-    pacman) run_cmd_sudo pacman -Sy ;;
-    zypper) run_cmd_sudo zypper refresh ;;
-    apk)    run_cmd_sudo apk update ;;
+    apt)    check_sudo || return 1; run_cmd_sudo apt-get update -y ;;
+    dnf)    check_sudo || return 1; run_cmd_sudo dnf check-update || true ;;
+    yum)    check_sudo || return 1; run_cmd_sudo yum check-update || true ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -Sy ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper refresh ;;
+    apk)    check_sudo || return 1; run_cmd_sudo apk update ;;
+    brew)   run_cmd brew update ;;
     *)
       log_error "Cannot update package index: unsupported package manager '${PKG_MANAGER:-unknown}'."
       return 1
@@ -348,7 +364,9 @@ offer_install_dialog() {
   log_warn "'dialog' is not installed. Install it for a better interactive menu."
   if ask_confirm "Install dialog now?"; then
     detect_package_manager 2>/dev/null || true
-    if [[ -n "$PKG_INSTALL" ]]; then
+    if [[ "$PKG_MANAGER" == "brew" ]]; then
+      brew install dialog && DIALOG_AVAILABLE=1
+    elif [[ -n "$PKG_INSTALL" ]]; then
       # shellcheck disable=SC2086
       sudo $PKG_INSTALL dialog && DIALOG_AVAILABLE=1
     else

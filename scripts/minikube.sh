@@ -46,7 +46,6 @@ install_minikube() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   local arch
@@ -55,12 +54,14 @@ install_minikube() {
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       log_step "Downloading Minikube .deb package..."
       download_file "https://storage.googleapis.com/minikube/releases/latest/minikube_latest_${arch}.deb" \
         "${tmpdir}/minikube.deb"
       run_cmd_sudo dpkg -i "${tmpdir}/minikube.deb"
       ;;
     dnf|yum)
+      check_sudo || return 1
       log_step "Downloading Minikube .rpm package..."
       download_file "https://storage.googleapis.com/minikube/releases/latest/minikube-latest.${arch}.rpm" \
         "${tmpdir}/minikube.rpm"
@@ -71,10 +72,15 @@ install_minikube() {
       if is_installed yay; then
         run_cmd yay -S --noconfirm minikube
       else
+        check_sudo || return 1
         _install_minikube_binary "$arch" "$tmpdir"
       fi
       ;;
+    brew)
+      run_cmd brew install minikube || return 1
+      ;;
     *)
+      check_sudo || return 1
       _install_minikube_binary "$arch" "$tmpdir"
       ;;
   esac

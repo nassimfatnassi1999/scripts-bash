@@ -13,14 +13,14 @@ SCRIPT_DESC="Install tools and run network diagnostics"
 handle_standard_args "$@"
 
 install_network_tools() {
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y iproute2 iputils-ping dnsutils traceroute mtr-tiny net-tools curl wget nmap tcpdump ;;
-    dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y iproute iputils bind-utils traceroute mtr net-tools curl wget nmap tcpdump ;;
-    pacman) run_cmd_sudo pacman -S --noconfirm iproute2 iputils bind traceroute mtr net-tools curl wget nmap tcpdump ;;
-    zypper) run_cmd_sudo zypper install -y iproute2 iputils bind-utils traceroute mtr net-tools curl wget nmap tcpdump ;;
-    apk) run_cmd_sudo apk add iproute2 iputils bind-tools traceroute mtr net-tools curl wget nmap tcpdump ;;
+    apt) check_sudo || return 1; run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y iproute2 iputils-ping dnsutils traceroute mtr-tiny net-tools curl wget nmap tcpdump ;;
+    dnf|yum) check_sudo || return 1; run_cmd_sudo "$PKG_MANAGER" install -y iproute iputils bind-utils traceroute mtr net-tools curl wget nmap tcpdump ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm iproute2 iputils bind traceroute mtr net-tools curl wget nmap tcpdump ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper install -y iproute2 iputils bind-utils traceroute mtr net-tools curl wget nmap tcpdump ;;
+    apk) check_sudo || return 1; run_cmd_sudo apk add iproute2 iputils bind-tools traceroute mtr net-tools curl wget nmap tcpdump ;;
+    brew) run_cmd brew install bind curl wget nmap tcpdump traceroute mtr net-tools ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }

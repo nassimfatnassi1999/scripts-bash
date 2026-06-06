@@ -23,28 +23,36 @@ ARCHIVE_FORMAT="${ARCHIVE_FORMAT:-zip}"
 # DEPENDENCIES
 # ---------------------------------------------------------------------------
 install_archive_tools() {
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       run_cmd_sudo apt-get update -y
       run_cmd_sudo apt-get install -y zip unzip tar gzip bzip2 xz-utils coreutils
       ;;
     dnf)
+      check_sudo || return 1
       run_cmd_sudo dnf install -y zip unzip tar gzip bzip2 xz coreutils
       ;;
     yum)
+      check_sudo || return 1
       run_cmd_sudo yum install -y zip unzip tar gzip bzip2 xz coreutils
       ;;
     pacman)
+      check_sudo || return 1
       run_cmd_sudo pacman -S --noconfirm zip unzip tar gzip bzip2 xz coreutils
       ;;
     zypper)
+      check_sudo || return 1
       run_cmd_sudo zypper install -y zip unzip tar gzip bzip2 xz coreutils
       ;;
     apk)
+      check_sudo || return 1
       run_cmd_sudo apk add zip unzip tar gzip bzip2 xz coreutils
+      ;;
+    brew)
+      run_cmd brew install zip unzip gnu-tar gzip bzip2 xz coreutils
       ;;
     *)
       log_error "Unsupported package manager."

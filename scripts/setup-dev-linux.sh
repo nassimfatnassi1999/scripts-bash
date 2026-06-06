@@ -7,8 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../lib/common.sh"
 register_cleanup
 
-SCRIPT_NAME="Linux Dev Environment Setup"
-SCRIPT_DESC="Set up a complete developer workstation on any Linux distribution"
+SCRIPT_NAME="Dev Environment Setup"
+SCRIPT_DESC="Set up a complete developer workstation on Linux or macOS"
 
 handle_standard_args "$@"
 
@@ -17,7 +17,6 @@ handle_standard_args "$@"
 # ---------------------------------------------------------------------------
 install_base_tools() {
   log_step "Installing base tools..."
-  check_sudo || return 1
   detect_package_manager || return 1
   update_package_index || return 1
 
@@ -40,6 +39,9 @@ install_base_tools() {
     apk)
       base_pkgs=(curl wget git build-base ca-certificates gnupg unzip tar jq vim nano make)
       ;;
+    brew)
+      base_pkgs=(curl wget git gnupg unzip gnu-tar jq vim nano make)
+      ;;
     *)
       log_warn "Unknown package manager. Skipping base tool install."
       return 0
@@ -61,11 +63,11 @@ install_vscode() {
     return 0
   fi
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
   log_step "Installing Visual Studio Code..."
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       local tmpdir; tmpdir="$(make_tmpdir)"
       download_file "https://packages.microsoft.com/keys/microsoft.asc" "${tmpdir}/microsoft.asc" || return 1
       run_cmd_sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/packages.microsoft.gpg < "${tmpdir}/microsoft.asc" || return 1
@@ -75,6 +77,7 @@ install_vscode() {
       run_cmd_sudo apt-get install -y code || return 1
       ;;
     dnf|yum)
+      check_sudo || return 1
       local tmpdir; tmpdir="$(make_tmpdir)"
       download_file "https://packages.microsoft.com/keys/microsoft.asc" "${tmpdir}/microsoft.asc" || return 1
       run_cmd_sudo rpm --import "${tmpdir}/microsoft.asc" || return 1
@@ -97,8 +100,12 @@ EOF
         return 0
       fi
       ;;
+    brew)
+      run_cmd brew install --cask visual-studio-code || return 1
+      ;;
     *)
       if is_installed snap; then
+        check_sudo || return 1
         run_cmd_sudo snap install code --classic
       else
         log_warn "Cannot install VS Code automatically. Visit: https://code.visualstudio.com"
@@ -169,14 +176,14 @@ install_git_config() {
 
 install_python_tools() {
   log_step "Installing Python tools..."
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt)     run_cmd_sudo apt-get install -y python3 python3-pip python3-venv ;;
+    apt)     check_sudo || return 1; run_cmd_sudo apt-get install -y python3 python3-pip python3-venv ;;
     dnf|yum) install_packages python3 python3-pip ;;
-    pacman)  run_cmd_sudo pacman -S --noconfirm python python-pip ;;
-    zypper)  run_cmd_sudo zypper install -y python3 python3-pip ;;
-    apk)     run_cmd_sudo apk add python3 py3-pip ;;
+    pacman)  check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm python python-pip ;;
+    zypper)  check_sudo || return 1; run_cmd_sudo zypper install -y python3 python3-pip ;;
+    apk)     check_sudo || return 1; run_cmd_sudo apk add python3 py3-pip ;;
+    brew)    run_cmd brew install python ;;
     *) log_warn "Unknown package manager for Python install." ;;
   esac
   log_ok "Python installed: $(python3 --version 2>/dev/null || true)"
@@ -187,7 +194,6 @@ install_zsh_oh_my_zsh() {
     log_ok "Zsh already installed."
   else
     log_step "Installing Zsh..."
-    check_sudo || return 1
     install_package zsh || return 1
   fi
 

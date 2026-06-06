@@ -46,16 +46,26 @@ install_aws_cli() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
+
+  if [[ "$PKG_MANAGER" == "brew" ]]; then
+    run_cmd brew install awscli || return 1
+    log_ok "AWS CLI installed: $(aws --version 2>&1)"
+    log_info "Run 'aws configure' to set your credentials."
+    return 0
+  fi
+
+  check_sudo || return 1
 
   local arch
   arch="$(get_arch_suffix)"
+  local os="linux"
+  [[ "$(uname -s)" == "Darwin" ]] && os="macos"
   local tmpdir
   tmpdir="$(make_tmpdir)"
 
   log_step "Downloading AWS CLI v2 for ${arch}..."
-  local url="https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip"
+  local url="https://awscli.amazonaws.com/awscli-exe-${os}-${arch}.zip"
   download_file "$url" "${tmpdir}/awscliv2.zip" || return 1
 
   require_command unzip "unzip (install via package manager)" || return 1
@@ -107,11 +117,11 @@ install_azure_cli() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       log_step "Installing Azure CLI via Microsoft repository..."
       run_cmd_sudo apt-get update -y || return 1
       run_cmd_sudo apt-get install -y ca-certificates curl apt-transport-https lsb-release gnupg || return 1
@@ -126,6 +136,7 @@ install_azure_cli() {
       run_cmd_sudo apt-get install -y azure-cli || return 1
       ;;
     dnf|yum)
+      check_sudo || return 1
       log_step "Installing Azure CLI via rpm..."
       local tmpdir; tmpdir="$(make_tmpdir)"
       download_file "https://packages.microsoft.com/keys/microsoft.asc" "${tmpdir}/microsoft.asc" || return 1
@@ -151,6 +162,10 @@ EOF
         log_warn "AUR helper not found. Install yay or paru first, then 'yay -S azure-cli'."
         return 1
       fi
+      ;;
+    brew)
+      log_step "Installing Azure CLI via Homebrew..."
+      run_cmd brew install azure-cli || return 1
       ;;
     *)
       log_step "Trying pip install..."
@@ -195,11 +210,11 @@ install_gcloud() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       log_step "Installing Google Cloud SDK via apt..."
       run_cmd_sudo apt-get update -y || return 1
       run_cmd_sudo apt-get install -y ca-certificates curl apt-transport-https gnupg || return 1
@@ -213,6 +228,7 @@ install_gcloud() {
       run_cmd_sudo apt-get install -y google-cloud-cli || return 1
       ;;
     dnf|yum)
+      check_sudo || return 1
       log_step "Installing Google Cloud SDK via rpm..."
       local tmpdir; tmpdir="$(make_tmpdir)"
       cat > "${tmpdir}/google-cloud-sdk.repo" <<'EOF'
@@ -227,9 +243,14 @@ EOF
       run_cmd_sudo mv "${tmpdir}/google-cloud-sdk.repo" /etc/yum.repos.d/google-cloud-sdk.repo || return 1
       install_package google-cloud-cli || return 1
       ;;
+    brew)
+      log_step "Installing Google Cloud CLI via Homebrew..."
+      run_cmd brew install --cask google-cloud-sdk || return 1
+      ;;
     *)
       log_step "Installing via snap..."
       if is_installed snap; then
+        check_sudo || return 1
         run_cmd_sudo snap install google-cloud-cli --classic || return 1
       else
         log_error "Unsupported package manager for automatic GCloud install."

@@ -13,14 +13,14 @@ SCRIPT_DESC="Install and run common monitoring and observability tools"
 handle_standard_args "$@"
 
 install_monitoring_tools() {
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y htop iotop iftop sysstat lsof procps net-tools curl ;;
-    dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y htop iotop iftop sysstat lsof procps-ng net-tools curl ;;
-    pacman) run_cmd_sudo pacman -S --noconfirm htop iotop iftop sysstat lsof procps-ng net-tools curl ;;
-    zypper) run_cmd_sudo zypper install -y htop iotop iftop sysstat lsof procps net-tools curl ;;
-    apk) run_cmd_sudo apk add htop iotop iftop sysstat lsof procps net-tools curl ;;
+    apt) check_sudo || return 1; run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y htop iotop iftop sysstat lsof procps net-tools curl ;;
+    dnf|yum) check_sudo || return 1; run_cmd_sudo "$PKG_MANAGER" install -y htop iotop iftop sysstat lsof procps-ng net-tools curl ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm htop iotop iftop sysstat lsof procps-ng net-tools curl ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper install -y htop iotop iftop sysstat lsof procps net-tools curl ;;
+    apk) check_sudo || return 1; run_cmd_sudo apk add htop iotop iftop sysstat lsof procps net-tools curl ;;
+    brew) run_cmd brew install htop iftop sysstat lsof net-tools curl ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }

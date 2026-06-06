@@ -29,11 +29,11 @@ install_ansible() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       log_step "Installing Ansible via apt..."
       run_cmd_sudo apt-get update -y
       run_cmd_sudo apt-get install -y software-properties-common curl gpg
@@ -51,6 +51,7 @@ install_ansible() {
       fi
       ;;
     dnf|yum)
+      check_sudo || return 1
       log_step "Installing Ansible via ${PKG_MANAGER}..."
       # shellcheck disable=SC2086
       run_cmd sudo $PKG_INSTALL epel-release 2>/dev/null || true
@@ -58,16 +59,23 @@ install_ansible() {
       run_cmd sudo $PKG_INSTALL ansible
       ;;
     pacman)
+      check_sudo || return 1
       log_step "Installing Ansible via pacman..."
       run_cmd_sudo pacman -S --noconfirm ansible
       ;;
     zypper)
+      check_sudo || return 1
       log_step "Installing Ansible via zypper..."
       run_cmd_sudo zypper install -y ansible
       ;;
     apk)
+      check_sudo || return 1
       log_step "Installing Ansible via apk..."
       run_cmd_sudo apk add ansible
+      ;;
+    brew)
+      log_step "Installing Ansible via Homebrew..."
+      run_cmd brew install ansible
       ;;
     *)
       log_warn "Package manager not detected. Trying pip3..."

@@ -1,18 +1,19 @@
-# Linux DevOps Toolbox
+# DevOps Toolbox
 
-A portable Bash toolbox for common Linux, DevOps, cloud, container, Kubernetes, backup, security, monitoring, and troubleshooting workflows.
+A portable Bash toolbox for common Linux/macOS, DevOps, cloud, container, Kubernetes, backup, security, monitoring, and troubleshooting workflows.
 
 The scripts are organized around a shared library in `lib/common.sh` and a central launcher in `main.sh`.
 
 ## Supported Systems
 
-The toolbox targets common Linux distributions and package managers:
+The toolbox targets common Linux distributions, MacBook/macOS systems, and package managers:
 
 - Ubuntu / Debian with `apt`
 - Fedora / RHEL / CentOS with `dnf` or `yum`
 - Arch Linux with `pacman`
 - openSUSE with `zypper`
 - Alpine Linux with `apk`
+- MacBook / macOS with Homebrew `brew`
 
 Some tool-specific upstream installers may still have their own architecture or distribution limits.
 

@@ -56,26 +56,35 @@ install_docker() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       _install_docker_apt || return 1
       ;;
     dnf|yum)
+      check_sudo || return 1
       _install_docker_rpm || return 1
       ;;
     pacman)
+      check_sudo || return 1
       _install_docker_arch || return 1
       ;;
     zypper)
+      check_sudo || return 1
       _install_docker_zypper || return 1
       ;;
     apk)
+      check_sudo || return 1
       _install_docker_alpine || return 1
       ;;
+    brew)
+      run_cmd brew install --cask docker || return 1
+      log_info "Open Docker Desktop once to start the Docker daemon on macOS."
+      ;;
     *)
+      check_sudo || return 1
       log_warn "Unsupported package manager. Trying convenience script..."
       _install_docker_script || return 1
       ;;

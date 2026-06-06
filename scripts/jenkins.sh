@@ -49,7 +49,6 @@ install_java() {
     if ! ask_confirm "Reinstall Java?"; then return 0; fi
   fi
 
-  check_sudo || return 1
   detect_package_manager || return 1
 
   local java_version
@@ -57,6 +56,7 @@ install_java() {
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       run_cmd_sudo apt-get update -y || return 1
       run_cmd_sudo apt-get install -y "openjdk-${java_version}-jdk" || return 1
       ;;
@@ -64,13 +64,19 @@ install_java() {
       install_packages "java-${java_version}-openjdk-devel" || return 1
       ;;
     pacman)
+      check_sudo || return 1
       run_cmd_sudo pacman -S --noconfirm jdk-openjdk || return 1
       ;;
     zypper)
+      check_sudo || return 1
       run_cmd_sudo zypper install -y "java-${java_version}-openjdk-devel" || return 1
       ;;
     apk)
+      check_sudo || return 1
       run_cmd_sudo apk add "openjdk${java_version}" || return 1
+      ;;
+    brew)
+      run_cmd brew install "openjdk@${java_version}" || run_cmd brew install openjdk || return 1
       ;;
     *)
       log_error "Cannot install Java automatically on this system."
@@ -97,19 +103,25 @@ install_jenkins() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   JENKINS_PORT="$(ask_input "Jenkins HTTP port" "$JENKINS_PORT")"
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       _install_jenkins_apt || return 1
       ;;
     dnf|yum)
+      check_sudo || return 1
       _install_jenkins_rpm || return 1
       ;;
+    brew)
+      run_cmd brew install jenkins-lts || return 1
+      log_info "Start Jenkins on macOS with: brew services start jenkins-lts"
+      ;;
     *)
+      check_sudo || return 1
       _install_jenkins_war || return 1
       ;;
   esac

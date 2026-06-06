@@ -44,6 +44,9 @@ install_packages_if_missing() {
       pacman)
         pacman -Q "$pkg" >/dev/null 2>&1 || install_package "$pkg"
         ;;
+      brew)
+        brew list "$pkg" >/dev/null 2>&1 || install_package "$pkg"
+        ;;
       apk)
         apk info -e "$pkg" >/dev/null 2>&1 || install_package "$pkg"
         ;;
@@ -137,16 +140,16 @@ install_terraform() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
-    apt) _install_terraform_apt || return 1 ;;
-    dnf|yum) _install_terraform_rpm || return 1 ;;
-    pacman) _install_terraform_pacman || return 1 ;;
-    zypper) _install_terraform_zypper || return 1 ;;
-    apk) _install_terraform_binary || return 1 ;;
-    *) _install_terraform_binary || return 1 ;;
+    brew) run_cmd brew install terraform || return 1 ;;
+    apt) check_sudo || return 1; _install_terraform_apt || return 1 ;;
+    dnf|yum) check_sudo || return 1; _install_terraform_rpm || return 1 ;;
+    pacman) check_sudo || return 1; _install_terraform_pacman || return 1 ;;
+    zypper) check_sudo || return 1; _install_terraform_zypper || return 1 ;;
+    apk) check_sudo || return 1; _install_terraform_binary || return 1 ;;
+    *) check_sudo || return 1; _install_terraform_binary || return 1 ;;
   esac
 
   if is_installed terraform || [[ "${DRY_RUN:-0}" == "1" ]]; then
@@ -236,6 +239,8 @@ _install_terraform_binary() {
 
   local arch version tmpdir url
   arch="$(get_arch_suffix)"
+  local os="linux"
+  [[ "$(uname -s)" == "Darwin" ]] && os="darwin"
   version="$(_latest_hashicorp_version terraform || true)"
   if [[ -z "$version" ]]; then
     version="$(ask_input "Terraform version" "1.8.5")"
@@ -243,9 +248,10 @@ _install_terraform_binary() {
   require_not_empty "$version" "Terraform version"
 
   tmpdir="$(make_tmpdir)"
-  url="https://releases.hashicorp.com/terraform/${version}/terraform_${version}_linux_${arch}.zip"
+  url="https://releases.hashicorp.com/terraform/${version}/terraform_${version}_${os}_${arch}.zip"
   download_file "$url" "${tmpdir}/terraform.zip" || return 1
   run_cmd unzip -q "${tmpdir}/terraform.zip" -d "${tmpdir}" || return 1
+  check_sudo || return 1
   run_cmd_sudo install -m 0755 "${tmpdir}/terraform" /usr/local/bin/terraform || return 1
 }
 
@@ -259,15 +265,15 @@ install_opentofu() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
-    apt) _install_tofu_apt || return 1 ;;
-    dnf|yum|zypper) _install_tofu_rpm || return 1 ;;
-    pacman) _install_tofu_pacman || return 1 ;;
-    apk) _install_tofu_binary || return 1 ;;
-    *) _install_tofu_binary || return 1 ;;
+    brew) run_cmd brew install opentofu || return 1 ;;
+    apt) check_sudo || return 1; _install_tofu_apt || return 1 ;;
+    dnf|yum|zypper) check_sudo || return 1; _install_tofu_rpm || return 1 ;;
+    pacman) check_sudo || return 1; _install_tofu_pacman || return 1 ;;
+    apk) check_sudo || return 1; _install_tofu_binary || return 1 ;;
+    *) check_sudo || return 1; _install_tofu_binary || return 1 ;;
   esac
 
   if is_installed tofu || [[ "${DRY_RUN:-0}" == "1" ]]; then
@@ -347,6 +353,8 @@ _install_tofu_binary() {
 
   local arch version tmpdir url
   arch="$(get_arch_suffix)"
+  local os="linux"
+  [[ "$(uname -s)" == "Darwin" ]] && os="darwin"
   version="$(_latest_github_version opentofu/opentofu || true)"
   if [[ -z "$version" ]]; then
     version="$(ask_input "OpenTofu version" "1.8.2")"
@@ -354,9 +362,10 @@ _install_tofu_binary() {
   require_not_empty "$version" "OpenTofu version"
 
   tmpdir="$(make_tmpdir)"
-  url="https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_${arch}.zip"
+  url="https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_${os}_${arch}.zip"
   download_file "$url" "${tmpdir}/tofu.zip" || return 1
   run_cmd unzip -q "${tmpdir}/tofu.zip" -d "${tmpdir}" || return 1
+  check_sudo || return 1
   run_cmd_sudo install -m 0755 "${tmpdir}/tofu" /usr/local/bin/tofu || return 1
 }
 

@@ -40,11 +40,11 @@ install_helm() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       log_step "Installing Helm via apt..."
       local tmpdir; tmpdir="$(make_tmpdir)"
       download_file "https://baltocdn.com/helm/signing.asc" "${tmpdir}/helm.asc" || return 1
@@ -60,12 +60,18 @@ install_helm() {
       install_package helm 2>/dev/null || _install_helm_script || return 1
       ;;
     pacman)
+      check_sudo || return 1
       log_step "Installing Helm via pacman..."
       run_cmd_sudo pacman -S --noconfirm helm || return 1
       ;;
     zypper)
+      check_sudo || return 1
       log_step "Installing Helm via zypper..."
       run_cmd_sudo zypper install -y helm || return 1
+      ;;
+    brew)
+      log_step "Installing Helm via Homebrew..."
+      run_cmd brew install helm || return 1
       ;;
     *)
       _install_helm_script || return 1

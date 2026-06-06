@@ -64,14 +64,15 @@ install_kopia() {
   fi
 
   require_internet
-  check_sudo || return 1
   detect_package_manager || return 1
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       _install_kopia_apt || return 1
       ;;
     dnf|yum)
+      check_sudo || return 1
       _install_kopia_rpm || return 1
       ;;
     pacman)
@@ -79,10 +80,15 @@ install_kopia() {
         run_cmd yay -S --noconfirm kopia-bin || return 1
       else
         log_warn "Install kopia-bin from AUR manually, or use binary install."
+        check_sudo || return 1
         _install_kopia_binary || return 1
       fi
       ;;
+    brew)
+      run_cmd brew install kopia || return 1
+      ;;
     *)
+      check_sudo || return 1
       _install_kopia_binary || return 1
       ;;
   esac
@@ -124,12 +130,14 @@ _install_kopia_binary() {
   log_step "Installing Kopia via binary download..."
   local arch
   arch="$(get_arch_suffix)"
+  local os="linux"
+  [[ "$(uname -s)" == "Darwin" ]] && os="darwin"
   local tmpdir; tmpdir="$(make_tmpdir)"
   # Get latest version
   local version
   version="$(curl -fsSL https://api.github.com/repos/kopia/kopia/releases/latest \
     | grep '"tag_name"' | sed 's/.*"v\([^"]*\)".*/\1/' 2>/dev/null || echo "0.17.0")"
-  local url="https://github.com/kopia/kopia/releases/download/v${version}/kopia-${version}-linux-${arch}.tar.gz"
+  local url="https://github.com/kopia/kopia/releases/download/v${version}/kopia-${version}-${os}-${arch}.tar.gz"
   download_file "$url" "${tmpdir}/kopia.tar.gz" || return 1
   run_cmd tar -xzf "${tmpdir}/kopia.tar.gz" -C "${tmpdir}" || return 1
   run_cmd_sudo install -m 755 "${tmpdir}/kopia" /usr/local/bin/kopia || return 1

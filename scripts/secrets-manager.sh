@@ -24,14 +24,14 @@ ensure_secrets_dir() {
 }
 
 install_secret_tools() {
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y openssl gnupg pass pwgen ;;
-    dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y openssl gnupg2 pass pwgen ;;
-    pacman) run_cmd_sudo pacman -S --noconfirm openssl gnupg pass pwgen ;;
-    zypper) run_cmd_sudo zypper install -y openssl gpg2 password-store pwgen ;;
-    apk) run_cmd_sudo apk add openssl gnupg pass pwgen ;;
+    apt) check_sudo || return 1; run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y openssl gnupg pass pwgen ;;
+    dnf|yum) check_sudo || return 1; run_cmd_sudo "$PKG_MANAGER" install -y openssl gnupg2 pass pwgen ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm openssl gnupg pass pwgen ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper install -y openssl gpg2 password-store pwgen ;;
+    apk) check_sudo || return 1; run_cmd_sudo apk add openssl gnupg pass pwgen ;;
+    brew) run_cmd brew install openssl gnupg pass pwgen ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }

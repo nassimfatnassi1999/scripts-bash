@@ -39,6 +39,10 @@ install_binary_url() {
 }
 
 install_k9s() {
+  if [[ "$(detect_package_manager >/dev/null 2>&1; echo "$PKG_MANAGER")" == "brew" ]]; then
+    run_cmd brew install k9s
+    return
+  fi
   local arch version url
   arch="$(get_arch_suffix)"
   version="$(github_latest_version derailed/k9s)"
@@ -47,6 +51,10 @@ install_k9s() {
 }
 
 install_kubectx_kubens() {
+  if [[ "$(detect_package_manager >/dev/null 2>&1; echo "$PKG_MANAGER")" == "brew" ]]; then
+    run_cmd brew install kubectx
+    return
+  fi
   check_sudo || return 1
   require_internet
   local tmpdir
@@ -58,6 +66,10 @@ install_kubectx_kubens() {
 }
 
 install_stern() {
+  if [[ "$(detect_package_manager >/dev/null 2>&1; echo "$PKG_MANAGER")" == "brew" ]]; then
+    run_cmd brew install stern
+    return
+  fi
   local arch version url
   arch="$(get_arch_suffix)"
   version="$(github_latest_version stern/stern)"
@@ -66,6 +78,10 @@ install_stern() {
 }
 
 install_kustomize() {
+  if [[ "$(detect_package_manager >/dev/null 2>&1; echo "$PKG_MANAGER")" == "brew" ]]; then
+    run_cmd brew install kustomize
+    return
+  fi
   check_sudo || return 1
   require_internet
   local tmpdir
@@ -76,6 +92,10 @@ install_kustomize() {
 }
 
 install_kind() {
+  if [[ "$(detect_package_manager >/dev/null 2>&1; echo "$PKG_MANAGER")" == "brew" ]]; then
+    run_cmd brew install kind
+    return
+  fi
   local arch version url
   arch="$(get_arch_suffix)"
   version="$(github_latest_version kubernetes-sigs/kind)"

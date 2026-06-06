@@ -15,14 +15,14 @@ handle_standard_args "$@"
 SSH_DIR="${HOME}/.ssh"
 
 install_ssh_tools() {
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y openssh-client openssh-server ;;
-    dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y openssh-clients openssh-server ;;
-    pacman) run_cmd_sudo pacman -S --noconfirm openssh ;;
-    zypper) run_cmd_sudo zypper install -y openssh ;;
-    apk) run_cmd_sudo apk add openssh-client openssh-server ;;
+    apt) check_sudo || return 1; run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y openssh-client openssh-server ;;
+    dnf|yum) check_sudo || return 1; run_cmd_sudo "$PKG_MANAGER" install -y openssh-clients openssh-server ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm openssh ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper install -y openssh ;;
+    apk) check_sudo || return 1; run_cmd_sudo apk add openssh-client openssh-server ;;
+    brew) run_cmd brew install openssh ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }

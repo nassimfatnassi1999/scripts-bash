@@ -228,6 +228,11 @@ show_package_manager_info() {
       echo
       apk version -l '<' 2>/dev/null | sed -n '1,80p' || true
       ;;
+    brew)
+      brew --version | head -1
+      echo
+      brew outdated 2>/dev/null | sed -n '1,80p' || true
+      ;;
     *)
       echo "No supported package manager detected."
       ;;
@@ -435,7 +440,6 @@ vacuum_journal() {
 }
 
 package_cleanup() {
-  check_sudo || return 1
   detect_package_manager || return 1
   log_warn "This removes package cache and/or unused packages where supported."
   if ! ask_confirm "Proceed with package cleanup for ${PKG_MANAGER}?"; then
@@ -445,26 +449,36 @@ package_cleanup() {
 
   case "$PKG_MANAGER" in
     apt)
+      check_sudo || return 1
       run_cmd_sudo apt-get autoremove -y
       run_cmd_sudo apt-get autoclean -y
       run_cmd_sudo apt-get clean
       ;;
     dnf)
+      check_sudo || return 1
       run_cmd_sudo dnf autoremove -y || true
       run_cmd_sudo dnf clean all
       ;;
     yum)
+      check_sudo || return 1
       run_cmd_sudo yum autoremove -y || true
       run_cmd_sudo yum clean all
       ;;
     pacman)
+      check_sudo || return 1
       run_cmd_sudo pacman -Sc --noconfirm
       ;;
     zypper)
+      check_sudo || return 1
       run_cmd_sudo zypper clean --all
       ;;
     apk)
+      check_sudo || return 1
       run_cmd_sudo apk cache clean
+      ;;
+    brew)
+      run_cmd brew cleanup
+      run_cmd brew autoremove || true
       ;;
     *)
       log_error "Unsupported package manager."

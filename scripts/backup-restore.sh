@@ -15,14 +15,14 @@ handle_standard_args "$@"
 BACKUP_ROOT="${BACKUP_ROOT:-${HOME}/backups}"
 
 install_backup_tools() {
-  check_sudo || return 1
   detect_package_manager || return 1
   case "$PKG_MANAGER" in
-    apt) run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y tar gzip xz-utils rsync coreutils ;;
-    dnf|yum) run_cmd_sudo "$PKG_MANAGER" install -y tar gzip xz rsync coreutils ;;
-    pacman) run_cmd_sudo pacman -S --noconfirm tar gzip xz rsync coreutils ;;
-    zypper) run_cmd_sudo zypper install -y tar gzip xz rsync coreutils ;;
-    apk) run_cmd_sudo apk add tar gzip xz rsync coreutils ;;
+    apt) check_sudo || return 1; run_cmd_sudo apt-get update -y; run_cmd_sudo apt-get install -y tar gzip xz-utils rsync coreutils ;;
+    dnf|yum) check_sudo || return 1; run_cmd_sudo "$PKG_MANAGER" install -y tar gzip xz rsync coreutils ;;
+    pacman) check_sudo || return 1; run_cmd_sudo pacman -S --noconfirm tar gzip xz rsync coreutils ;;
+    zypper) check_sudo || return 1; run_cmd_sudo zypper install -y tar gzip xz rsync coreutils ;;
+    apk) check_sudo || return 1; run_cmd_sudo apk add tar gzip xz rsync coreutils ;;
+    brew) run_cmd brew install gnu-tar gzip xz rsync coreutils ;;
     *) log_error "Unsupported package manager."; return 1 ;;
   esac
 }
